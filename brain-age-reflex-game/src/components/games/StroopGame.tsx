@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  formatText,
+  getTranslations,
+  type AppLocale,
+} from '../../i18n/translations';
 import type { StroopMetrics } from '../../types/game';
 import { triggerErrorFeedback, triggerLightTap } from '../../utils/haptics';
 
 interface StroopGameProps {
+  locale?: AppLocale;
   totalRounds?: number;
   onComplete: (metrics: StroopMetrics) => void;
 }
@@ -20,11 +26,11 @@ interface StroopTrial {
   inkColor: ColorOption;
 }
 
-const COLOR_OPTIONS: ColorOption[] = [
-  { key: 'red', label: 'ЧЕРВЕНО', hex: '#ef4444' },
-  { key: 'blue', label: 'СИНЬО', hex: '#38bdf8' },
-  { key: 'green', label: 'ЗЕЛЕНО', hex: '#10b981' },
-  { key: 'amber', label: 'ЖЪЛТО', hex: '#f59e0b' },
+const COLOR_PALETTE: Array<{ key: ColorKey; hex: string }> = [
+  { key: 'red', hex: '#ef4444' },
+  { key: 'blue', hex: '#38bdf8' },
+  { key: 'green', hex: '#10b981' },
+  { key: 'amber', hex: '#f5f117' },
 ];
 
 const DEFAULT_ROUNDS = 8;
@@ -35,14 +41,17 @@ function captureTimestampMs(): number {
 }
 
 // Generate a Stroop trial, favoring incongruent word/ink pairs to test cognitive control
-function createStroopTrial(previousInkKey?: ColorKey): StroopTrial {
-  const availableInks = COLOR_OPTIONS.filter((c) => c.key !== previousInkKey);
+function createStroopTrial(
+  options: ColorOption[],
+  previousInkKey?: ColorKey
+): StroopTrial {
+  const availableInks = options.filter((c) => c.key !== previousInkKey);
   const inkColor =
     availableInks[Math.floor(Math.random() * availableInks.length)];
 
   const shouldConflict = Math.random() < 0.75;
   const wordCandidates = shouldConflict
-    ? COLOR_OPTIONS.filter((c) => c.key !== inkColor.key)
+    ? options.filter((c) => c.key !== inkColor.key)
     : [inkColor];
   const wordSource =
     wordCandidates[Math.floor(Math.random() * wordCandidates.length)];
@@ -54,12 +63,31 @@ function createStroopTrial(previousInkKey?: ColorKey): StroopTrial {
 }
 
 export function StroopGame({
+  locale = 'bg',
   totalRounds = DEFAULT_ROUNDS,
   onComplete,
 }: StroopGameProps) {
+  const t = getTranslations(locale);
+
+  const colorOptions: ColorOption[] = COLOR_PALETTE.map((item) => {
+    const labelMap: Record<ColorKey, string> = {
+      red: t.colorRed,
+      blue: t.colorBlue,
+      green: t.colorGreen,
+      amber: t.colorYellow,
+    };
+    return {
+      key: item.key,
+      label: labelMap[item.key],
+      hex: item.hex,
+    };
+  });
+
   const [started, setStarted] = useState<boolean>(false);
   const [round, setRound] = useState<number>(1);
-  const [trial, setTrial] = useState<StroopTrial>(() => createStroopTrial());
+  const [trial, setTrial] = useState<StroopTrial>(() =>
+    createStroopTrial(colorOptions)
+  );
   const [lastFeedback, setLastFeedback] = useState<'correct' | 'wrong' | null>(
     null
   );
@@ -89,7 +117,7 @@ export function StroopGame({
     reactionTimesRef.current = [];
     lockedRef.current = false;
 
-    const firstTrial = createStroopTrial();
+    const firstTrial = createStroopTrial(colorOptions);
     setRound(1);
     setTrial(firstTrial);
     setLastFeedback(null);
@@ -111,7 +139,7 @@ export function StroopGame({
     if (isCorrect) {
       void triggerLightTap();
       correctCountRef.current += 1;
-    }else{
+    } else {
       void triggerErrorFeedback();
     }
 
@@ -137,7 +165,7 @@ export function StroopGame({
         return;
       }
 
-      const nextTrial = createStroopTrial(trial.inkColor.key);
+      const nextTrial = createStroopTrial(colorOptions, trial.inkColor.key);
       setRound((prev) => prev + 1);
       setTrial(nextTrial);
       setLastFeedback(null);
@@ -156,10 +184,10 @@ export function StroopGame({
         }}
       >
         <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
-          4 / 4 · Ефект на Струп
+          4 / 5 · {t.stroopTitle}
         </span>
         <span style={{ fontWeight: 700, color: '#38bdf8' }}>
-          Рунд {round} от {totalRounds}
+          {formatText(t.roundOf, { round, total: totalRounds })}
         </span>
       </div>
 
@@ -177,11 +205,10 @@ export function StroopGame({
           }}
         >
           <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-            Готов за теста за фокус?
+            {t.readyForStroop}
           </span>
           <span style={{ color: '#94a3b8', fontSize: '0.92rem', maxWidth: '290px' }}>
-            Избери <strong>цвета на шрифта</strong>, а не значението на
-            написаната дума.
+            {t.stroopInstructions}
           </span>
           <button
             type="button"
@@ -189,7 +216,7 @@ export function StroopGame({
             style={{ maxWidth: '240px' }}
             onClick={handleStart}
           >
-            Започни теста
+            {t.startTest}
           </button>
         </div>
       ) : (
@@ -202,7 +229,7 @@ export function StroopGame({
               textAlign: 'center',
             }}
           >
-            Посочи <strong>цвета на буквите</strong>:
+            {t.stroopPrompt}
           </p>
 
           <div
@@ -236,8 +263,9 @@ export function StroopGame({
             </span>
 
             <span style={{ fontSize: '0.82rem', color: '#94a3b8', minHeight: '18px' }}>
-              {lastFeedback === 'correct' && 'Точно!'}
-              {lastFeedback === 'wrong' && `Грешно — цветът беше ${trial.inkColor.label}`}
+              {lastFeedback === 'correct' && t.stroopCorrect}
+              {lastFeedback === 'wrong' &&
+                formatText(t.stroopWrong, { color: trial.inkColor.label })}
             </span>
           </div>
 
@@ -248,7 +276,7 @@ export function StroopGame({
               gap: '10px',
             }}
           >
-            {COLOR_OPTIONS.map((option) => (
+            {colorOptions.map((option) => (
               <button
                 key={option.key}
                 type="button"

@@ -411,6 +411,7 @@ export function App() {
           <MemoryGame
             key={`memory-${sessionId}`}
             onComplete={handleMemoryComplete}
+            locale={locale}
           />
         )}
 
@@ -418,6 +419,7 @@ export function App() {
           <NumberHuntGame
             key={`number-hunt-${sessionId}`}
             onComplete={handleNumberHuntComplete}
+            locale={locale}
           />
         )}
 
@@ -425,6 +427,7 @@ export function App() {
           <StroopGame
             key={`stroop-${sessionId}`}
             onComplete={handleStroopComplete}
+            locale={locale}
           />
         )}
 

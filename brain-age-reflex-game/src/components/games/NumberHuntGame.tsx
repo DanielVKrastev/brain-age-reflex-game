@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  formatText,
+  getTranslations,
+  type AppLocale,
+} from '../../i18n/translations';
 import type { NumberHuntMetrics } from '../../types/game';
 import { triggerErrorFeedback, triggerSuccessFeedback } from '../../utils/haptics';
 
 interface NumberHuntGameProps {
+  locale?: AppLocale;
   gridSize?: number; // 4 means 4x4 (1..16)
   onComplete: (metrics: NumberHuntMetrics) => void;
 }
@@ -25,9 +31,11 @@ function getElapsedSeconds(startMs: number): number {
 }
 
 export function NumberHuntGame({
+  locale = 'bg',
   gridSize = DEFAULT_GRID_SIZE,
   onComplete,
 }: NumberHuntGameProps) {
+  const t = getTranslations(locale);
   const totalNumbers = gridSize * gridSize;
 
   const [started, setStarted] = useState<boolean>(false);
@@ -116,7 +124,9 @@ export function NumberHuntGame({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>3 / 4 · Търсене на числа</span>
+        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+          3 / 5 · {t.numberHuntTitle}
+        </span>
         <span style={{ fontWeight: 800, color: '#34d399', fontVariantNumeric: 'tabular-nums' }}>
           {elapsedSec.toFixed(1)} s
         </span>
@@ -135,9 +145,11 @@ export function NumberHuntGame({
             textAlign: 'center',
           }}
         >
-          <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>Готов за търсене на числа?</span>
+          <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+            {t.readyForNumberHunt}
+          </span>
           <span style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '280px' }}>
-            Натисни числата от 1 до {totalNumbers} във възходящ ред възможно най-бързо.
+            {formatText(t.numberHuntInstructions, { count: totalNumbers })}
           </span>
           <button
             type="button"
@@ -145,7 +157,7 @@ export function NumberHuntGame({
             style={{ maxWidth: '240px' }}
             onClick={handleStartGame}
           >
-            Започни рунда
+            {t.startRound}
           </button>
         </div>
       ) : (
@@ -154,7 +166,9 @@ export function NumberHuntGame({
             className="card"
             style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
           >
-            <span style={{ color: '#cbd5e1', fontSize: '0.92rem' }}>Натисни последователно:</span>
+            <span style={{ color: '#cbd5e1', fontSize: '0.92rem' }}>
+              {t.pressInOrder}:
+            </span>
             <span
               style={{
                 fontSize: '1.35rem',
@@ -162,7 +176,9 @@ export function NumberHuntGame({
                 color: '#38bdf8',
               }}
             >
-              {nextNumber <= totalNumbers ? `Число ${nextNumber}` : 'Готово!'}
+              {nextNumber <= totalNumbers
+                ? formatText(t.numberLabel, { number: nextNumber })
+                : t.doneLabel}
             </span>
           </div>
 
@@ -221,7 +237,7 @@ export function NumberHuntGame({
             }}
           >
             <span>
-              Прогрес: {cleared.length} / {totalNumbers}
+              {t.progressLabel}: {cleared.length} / {totalNumbers}
             </span>
             <button
               type="button"
@@ -236,7 +252,7 @@ export function NumberHuntGame({
                 fontSize: '0.85rem',
               }}
             >
-              Нова подредба
+              {t.reshuffleBoard}
             </button>
           </div>
         </>

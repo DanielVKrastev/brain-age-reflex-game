@@ -1,6 +1,7 @@
 export type AppLocale = 'bg' | 'en' | 'de' | 'es' | 'fr' | 'it' | 'tr' | 'ro';
 
 export interface TranslationDictionary {
+    memorizeHighlighted: boolean;
     appTitle: string;
     homeButton: string;
     badgeFiveGames: string;
@@ -51,6 +52,36 @@ export interface TranslationDictionary {
     titleBalancedRhythm: string;
     titleCalmPace: string;
     titleNeedsWarmup: string;
+
+    // MemoryGame
+    readyForMemory: string;
+    memoryIntroHint: string;
+    memoryPreviewHint: string;
+    memoryRepeatCount: string;
+    memoryNextRound: string;
+    startRoundN: string;
+    foundInRound: string;
+
+    // NumberHuntGame
+    readyForNumberHunt: string;
+    numberHuntInstructions: string;
+    startRound: string;
+    pressInOrder: string;
+    numberLabel: string;
+    doneLabel: string;
+    progressLabel: string;
+    reshuffleBoard: string;
+
+    // StroopGame
+    readyForStroop: string;
+    stroopInstructions: string;
+    stroopPrompt: string;
+    stroopCorrect: string;
+    stroopWrong: string;
+    colorRed: string;
+    colorBlue: string;
+    colorGreen: string;
+    colorYellow: string;
 }
 
 export const SUPPORTED_LOCALES: Array<{ code: AppLocale; label: string }> = [
@@ -121,6 +152,37 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         titleBalancedRhythm: 'Уравновесен ритъм',
         titleCalmPace: 'Спокоен темп',
         titleNeedsWarmup: 'Нуждае се от разгрявка',
+
+        readyForMemory: 'Готов за визуалната памет?',
+        memoryIntroHint: 'Запомни светещите квадрати и ги повтори в същия рунд.',
+        memorizeHighlighted: true,
+        memoryPreviewHint:
+            'Квадратите ще светнат за 1.5 секунди, след което ще можеш да ги отбележиш.',
+        memoryRepeatCount: 'Възпроизведи {count} отбелязани квадрата.',
+        memoryNextRound: 'Преминаване към следващия рунд...',
+        startRoundN: 'Започни рунд {round}',
+        foundInRound: 'Открити в рунда',
+
+        readyForNumberHunt: 'Готов за търсене на числа?',
+        numberHuntInstructions:
+            'Натисни числата от 1 до {count} във възходящ ред възможно най-бързо.',
+        startRound: 'Започни рунда',
+        pressInOrder: 'Натисни последователно:',
+        numberLabel: 'Число {number}',
+        doneLabel: 'Готово!',
+        progressLabel: 'Прогрес',
+        reshuffleBoard: 'Нова подредба',
+
+        readyForStroop: 'Готов за ефекта на Струп?',
+        stroopInstructions:
+            'Натисни бутона с ЦВЕТА НА МАСТИЛОТО на думата, а не самата дума.',
+        stroopPrompt: 'Избери цвета на мастилото:',
+        stroopCorrect: 'Отличен фокус!',
+        stroopWrong: 'Цветът беше {color}',
+        colorRed: 'ЧЕРВЕН',
+        colorBlue: 'СИН',
+        colorGreen: 'ЗЕЛЕН',
+        colorYellow: 'ЖЪЛТ',
     },
     en: {
         appTitle: 'Brain Age & Reflex',
@@ -176,6 +238,37 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         titleBalancedRhythm: 'Balanced Rhythm',
         titleCalmPace: 'Steady Pace',
         titleNeedsWarmup: 'Needs Warm-up',
+
+        readyForMemory: 'Ready for Visual Memory?',
+        memoryIntroHint: 'Memorize the glowing tiles and repeat them in the same round.',
+        memorizeHighlighted: true,
+        memoryPreviewHint:
+            'Tiles will light up for 1.5 seconds, then you can select them.',
+        memoryRepeatCount: 'Select {count} highlighted tiles.',
+        memoryNextRound: 'Moving to the next round...',
+        startRoundN: 'Start Round {round}',
+        foundInRound: 'Found in round',
+
+        readyForNumberHunt: 'Ready for Number Hunt?',
+        numberHuntInstructions:
+            'Tap the numbers from 1 to {count} in ascending order as fast as possible.',
+        startRound: 'Start Round',
+        pressInOrder: 'Tap in order:',
+        numberLabel: 'Number {number}',
+        doneLabel: 'Done!',
+        progressLabel: 'Progress',
+        reshuffleBoard: 'Reshuffle',
+
+        readyForStroop: 'Ready for Stroop Effect?',
+        stroopInstructions:
+            'Tap the button matching the INK COLOR of the word — not the word itself.',
+        stroopPrompt: 'Tap the INK color of:',
+        stroopCorrect: 'Nice focus!',
+        stroopWrong: 'Ink was {color}',
+        colorRed: 'RED',
+        colorBlue: 'BLUE',
+        colorGreen: 'GREEN',
+        colorYellow: 'YELLOW',
     },
     de: {
         appTitle: 'Brain Age & Reflex',
@@ -520,8 +613,8 @@ export function formatText(
 }
 
 export function getTranslations(locale: AppLocale): TranslationDictionary {
-  return {
-    ...TRANSLATIONS.en,
-    ...TRANSLATIONS[locale],
-  } as TranslationDictionary;
+    return {
+        ...TRANSLATIONS.en,
+        ...TRANSLATIONS[locale],
+    } as TranslationDictionary;
 }

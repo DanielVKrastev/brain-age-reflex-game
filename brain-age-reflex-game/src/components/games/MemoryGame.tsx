@@ -1,8 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
+import {
+  formatText,
+  getTranslations,
+  type AppLocale,
+} from '../../i18n/translations';
 import type { MemoryMetrics } from '../../types/game';
 import { triggerErrorFeedback, triggerLightTap } from '../../utils/haptics';
 
 interface MemoryGameProps {
+  locale?: AppLocale;
   totalRounds?: number;
   onComplete: (metrics: MemoryMetrics) => void;
 }
@@ -28,9 +34,12 @@ function pickRandomIndices(count: number, maxExclusive: number): number[] {
 }
 
 export function MemoryGame({
+  locale = 'bg',
   totalRounds = TOTAL_ROUNDS_DEFAULT,
   onComplete,
 }: MemoryGameProps) {
+  const t = getTranslations(locale);
+
   const [round, setRound] = useState(1);
   const [phase, setPhase] = useState<Phase>('ready-to-start');
   const [targets, setTargets] = useState<number[]>([]);
@@ -176,18 +185,20 @@ export function MemoryGame({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>2 / 4 · Визуална памет</span>
+        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+          2 / 5 · {t.memoryTitle}
+        </span>
         <span style={{ fontWeight: 700, color: '#38bdf8' }}>
-          Рунд {round} от {totalRounds}
+          {formatText(t.roundOf, { round, total: totalRounds })}
         </span>
       </div>
 
       <p style={{ margin: 0, color: '#cbd5e1', fontSize: '0.95rem', lineHeight: 1.45 }}>
-        {phase === 'ready-to-start' &&
-          'Запомни светещите квадрати и ги повтори в същия рунд.'}
-        {phase === 'showing' && 'Запомни светещите квадрати...'}
-        {phase === 'input' && `Възпроизведи ${targets.length} отбелязани квадрата.`}
-        {phase === 'feedback' && 'Преминаване към следващия рунд...'}
+        {phase === 'ready-to-start' && t.memoryIntroHint}
+        {phase === 'showing' && t.memorizeHighlighted} 
+        {phase === 'input' &&
+          formatText(t.memoryRepeatCount, { count: targets.length })}
+        {phase === 'feedback' && t.memoryNextRound}
       </p>
 
       {phase === 'ready-to-start' ? (
@@ -203,9 +214,11 @@ export function MemoryGame({
             textAlign: 'center',
           }}
         >
-          <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>Готов за визуалната памет?</span>
+          <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+            {t.readyForMemory}
+          </span>
           <span style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '280px' }}>
-            Квадратите ще светнат за 1.5 секунди, след което ще можеш да ги отбележиш.
+            {t.memoryPreviewHint}
           </span>
           <button
             type="button"
@@ -213,7 +226,7 @@ export function MemoryGame({
             style={{ maxWidth: '240px' }}
             onClick={() => startRound(1)}
           >
-            Започни рунд 1
+            {formatText(t.startRoundN, { round: 1 })}
           </button>
         </div>
       ) : (
@@ -250,7 +263,7 @@ export function MemoryGame({
             className="card"
             style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}
           >
-            <span style={{ color: '#94a3b8' }}>Открити в рунда:</span>
+            <span style={{ color: '#94a3b8' }}>{t.foundInRound}:</span>
             <strong>
               {selected.length} / {targets.length}
             </strong>
