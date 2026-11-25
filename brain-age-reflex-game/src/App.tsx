@@ -5,6 +5,9 @@ import { NumberHuntGame } from './components/games/NumberHuntGame';
 import { ReactionGame } from './components/games/ReactionGame';
 import { StroopGame } from './components/games/StroopGame';
 import { ResultCard } from './components/ResultCard';
+import { useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { App as CapacitorApp } from '@capacitor/app';
 import type {
   GameStage,
   MathBlitzMetrics,
@@ -36,6 +39,37 @@ export function App() {
   const [stage, setStage] = useState<GameStage>('welcome');
   const [sessionId, setSessionId] = useState<number>(0);
   const [metrics, setMetrics] = useState<PartialSessionMetrics>({});
+
+  useEffect(() => {
+    if (!Capacitor.isNativePlatform()) return;
+
+    let listenerHandle: { remove: () => Promise<void> } | undefined;
+
+    const registerBackListener = async () => {
+      listenerHandle = await CapacitorApp.addListener(
+        'backButton',
+        ({ canGoBack }) => {
+          if (stage === 'welcome') {
+            if (!canGoBack) {
+              void CapacitorApp.exitApp();
+            }
+            return;
+          }
+
+          setMetrics({});
+          setStage('welcome');
+        }
+      );
+    };
+
+    void registerBackListener();
+
+    return () => {
+      if (listenerHandle) {
+        void listenerHandle.remove();
+      }
+    };
+  }, [stage]);
 
   const startNewSession = () => {
     setMetrics({});

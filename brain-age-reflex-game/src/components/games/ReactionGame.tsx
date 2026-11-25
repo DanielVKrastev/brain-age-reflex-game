@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactionMetrics } from '../../types/game';
 import { calculateMedian } from '../../utils/scoring';
+import { triggerErrorFeedback, triggerLightTap } from '../../utils/haptics';
 
 interface ReactionGameProps {
   totalRounds?: number;
@@ -70,6 +71,7 @@ export function ReactionGame({
     if (phase === 'waiting') {
       clearTimer();
       falseStartsRef.current += 1;
+      void triggerErrorFeedback();
       setPhase('too-early');
       return;
     }
@@ -84,6 +86,7 @@ export function ReactionGame({
       const updated = [...attemptsRef.current, elapsed];
       attemptsRef.current = updated;
 
+      void triggerLightTap();
       setAttemptsMs(updated);
       setLastReactionMs(elapsed);
       setPhase('round-done');

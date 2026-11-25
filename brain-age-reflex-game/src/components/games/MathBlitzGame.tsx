@@ -1,6 +1,7 @@
 /* eslint-disable no-useless-assignment */
 import { useEffect, useRef, useState } from 'react';
 import type { MathBlitzMetrics } from '../../types/game';
+import { triggerErrorFeedback, triggerSuccessFeedback } from '../../utils/haptics';
 
 interface MathBlitzGameProps {
   totalRounds?: number;
@@ -122,7 +123,10 @@ export function MathBlitzGame({
 
     const isCorrect = chosenValue === problem.answer;
     if (isCorrect) {
+      void triggerSuccessFeedback();
       correctCountRef.current += 1;
+    } else {
+      void triggerErrorFeedback();
     }
 
     setFeedback(isCorrect ? 'correct' : 'wrong');

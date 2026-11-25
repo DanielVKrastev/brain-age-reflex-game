@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { StroopMetrics } from '../../types/game';
+import { triggerErrorFeedback, triggerLightTap } from '../../utils/haptics';
 
 interface StroopGameProps {
   totalRounds?: number;
@@ -108,7 +109,10 @@ export function StroopGame({
 
     const isCorrect = chosenKey === trial.inkColor.key;
     if (isCorrect) {
+      void triggerLightTap();
       correctCountRef.current += 1;
+    }else{
+      void triggerErrorFeedback();
     }
 
     setLastFeedback(isCorrect ? 'correct' : 'wrong');

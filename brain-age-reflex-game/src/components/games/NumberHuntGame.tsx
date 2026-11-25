@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { NumberHuntMetrics } from '../../types/game';
+import { triggerErrorFeedback, triggerSuccessFeedback } from '../../utils/haptics';
 
 interface NumberHuntGameProps {
   gridSize?: number; // 4 means 4x4 (1..16)
@@ -82,11 +83,13 @@ export function NumberHuntGame({
     if (!started || finishedRef.current || cleared.includes(num)) return;
 
     if (num !== nextNumber) {
+      void triggerErrorFeedback();
       setWrongNum(num);
       if (wrongTimeoutRef.current !== null) {
         window.clearTimeout(wrongTimeoutRef.current);
       }
       wrongTimeoutRef.current = window.setTimeout(() => {
+        void triggerErrorFeedback();
         setWrongNum(null);
       }, 220);
       return;
@@ -96,6 +99,7 @@ export function NumberHuntGame({
     setCleared(updatedCleared);
 
     if (num === totalNumbers) {
+      void triggerSuccessFeedback();
       finishedRef.current = true;
       clearTimers();
       const finalSec = getElapsedSeconds(startTimeRef.current);

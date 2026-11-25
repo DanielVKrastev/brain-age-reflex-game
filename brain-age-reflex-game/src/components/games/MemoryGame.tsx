@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { MemoryMetrics } from '../../types/game';
+import { triggerErrorFeedback, triggerLightTap } from '../../utils/haptics';
 
 interface MemoryGameProps {
   totalRounds?: number;
@@ -118,6 +119,7 @@ export function MemoryGame({
 
     if (!targets.includes(index)) {
       // End current round early on a wrong tile and record partial hits
+      void triggerErrorFeedback();
       setWrongIndex(index);
       finishRound(selected.length, targets.length, elapsedSec);
       return;
@@ -127,6 +129,7 @@ export function MemoryGame({
     setSelected(nextSelected);
 
     if (nextSelected.length === targets.length) {
+      void triggerLightTap();
       finishRound(targets.length, targets.length, elapsedSec);
     }
   };
