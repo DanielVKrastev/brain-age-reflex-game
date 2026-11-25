@@ -403,6 +403,7 @@ export function App() {
           <ReactionGame
             key={`reaction-${sessionId}`}
             onComplete={handleReactionComplete}
+            locale={locale}
           />
         )}
 
@@ -431,6 +432,7 @@ export function App() {
           <MathBlitzGame
             key={`math-blitz-${sessionId}`}
             onComplete={handleMathBlitzComplete}
+            locale={locale}
           />
         )}
 

@@ -1,155 +1,183 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
+import {
+  formatText,
+  getTranslations,
+  type AppLocale,
+} from '../../i18n/translations';
 import type { ReactionMetrics } from '../../types/game';
-import { calculateMedian } from '../../utils/scoring';
-import { triggerErrorFeedback, triggerLightTap } from '../../utils/haptics';
 
 interface ReactionGameProps {
-  totalRounds?: number;
+  locale?: AppLocale;
   onComplete: (metrics: ReactionMetrics) => void;
 }
 
-type Phase = 'idle' | 'waiting' | 'ready' | 'too-early' | 'round-done';
+type Phase = 'intro' | 'waiting' | 'ready' | 'too-early' | 'done';
 
-const TOTAL_ROUNDS_DEFAULT = 5;
+const TOTAL_ROUNDS = 5;
+const MIN_DELAY_MS = 1100;
+const MAX_DELAY_MS = 2800;
 
-function readNowMs(): number {
-  return performance.now();
+function computeMedian(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  if (sorted.length % 2 === 0) {
+    return Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  }
+  return Math.round(sorted[mid]);
 }
 
-function pickDelayMs(): number {
-  return 1100 + Math.floor(Math.random() * 1900);
+async function triggerReactionHaptic(
+  style: ImpactStyle = ImpactStyle.Light
+): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    await Haptics.impact({ style });
+  } catch {
+    // Ignore haptic errors on unsupported devices
+  }
 }
 
 export function ReactionGame({
-  totalRounds = TOTAL_ROUNDS_DEFAULT,
+  locale = 'bg',
   onComplete,
 }: ReactionGameProps) {
+  const t = getTranslations(locale);
+
+  const [phase, setPhase] = useState<Phase>('intro');
   const [round, setRound] = useState<number>(1);
-  const [phase, setPhase] = useState<Phase>('idle');
+  const [samples, setSamples] = useState<number[]>([]);
+  const [falseStarts, setFalseStarts] = useState<number>(0);
   const [lastReactionMs, setLastReactionMs] = useState<number | null>(null);
-  const [attemptsMs, setAttemptsMs] = useState<number[]>([]);
 
-  const attemptsRef = useRef<number[]>([]);
-  const falseStartsRef = useRef<number>(0);
-  const goTimestampRef = useRef<number>(0);
   const timerRef = useRef<number | null>(null);
+  const readyTimestampRef = useRef<number>(0);
+  const completedRef = useRef<boolean>(false);
 
-  const clearTimer = () => {
+  const clearScheduledTimer = useCallback(() => {
     if (timerRef.current !== null) {
       window.clearTimeout(timerRef.current);
       timerRef.current = null;
     }
-  };
-
-  useEffect(() => {
-    return () => clearTimer();
   }, []);
 
-  const scheduleWaitingRound = (roundNumber: number) => {
-    clearTimer();
-    setRound(roundNumber);
-    setLastReactionMs(null);
+  const scheduleGreenSignal = useCallback(() => {
+    clearScheduledTimer();
     setPhase('waiting');
+    setLastReactionMs(null);
 
-    const delay = pickDelayMs();
+    const delay =
+      MIN_DELAY_MS + Math.random() * (MAX_DELAY_MS - MIN_DELAY_MS);
+
     timerRef.current = window.setTimeout(() => {
-      goTimestampRef.current = readNowMs();
+      readyTimestampRef.current = performance.now();
       setPhase('ready');
+      void triggerReactionHaptic(ImpactStyle.Light);
     }, delay);
-  };
+  }, [clearScheduledTimer]);
 
-  const handleStart = () => {
-    attemptsRef.current = [];
-    falseStartsRef.current = 0;
-    setAttemptsMs([]);
-    scheduleWaitingRound(1);
+  useEffect(() => {
+    return () => {
+      clearScheduledTimer();
+    };
+  }, [clearScheduledTimer]);
+
+  useEffect(() => {
+    if (phase !== 'done' || completedRef.current) return;
+    completedRef.current = true;
+
+    const finishTimer = window.setTimeout(() => {
+      const medianMs = computeMedian(samples);
+
+      onComplete({
+        medianMs,
+        falseStarts,
+      });
+    }, 650);
+
+    return () => {
+      window.clearTimeout(finishTimer);
+    };
+  }, [phase, samples, falseStarts, onComplete]);
+
+  const handleStartTest = () => {
+    completedRef.current = false;
+    setSamples([]);
+    setFalseStarts(0);
+    setRound(1);
+    void triggerReactionHaptic(ImpactStyle.Light);
+    scheduleGreenSignal();
   };
 
   const handlePadPress = () => {
-    if (phase === 'idle') return;
-
     if (phase === 'waiting') {
-      clearTimer();
-      falseStartsRef.current += 1;
-      void triggerErrorFeedback();
+      clearScheduledTimer();
+      setFalseStarts((prev) => prev + 1);
       setPhase('too-early');
+      void triggerReactionHaptic(ImpactStyle.Heavy);
       return;
     }
 
     if (phase === 'too-early') {
-      scheduleWaitingRound(round);
+      void triggerReactionHaptic(ImpactStyle.Light);
+      scheduleGreenSignal();
       return;
     }
 
     if (phase === 'ready') {
-      const elapsed = Math.max(80, Math.round(readNowMs() - goTimestampRef.current));
-      const updated = [...attemptsRef.current, elapsed];
-      attemptsRef.current = updated;
-
-      void triggerLightTap();
-      setAttemptsMs(updated);
+      const elapsed = Math.max(
+        1,
+        Math.round(performance.now() - readyTimestampRef.current)
+      );
+      const nextSamples = [...samples, elapsed];
+      setSamples(nextSamples);
       setLastReactionMs(elapsed);
-      setPhase('round-done');
+      void triggerReactionHaptic(ImpactStyle.Medium);
 
-      clearTimer();
-      timerRef.current = window.setTimeout(() => {
-        if (round >= totalRounds) {
-          const medianMs = calculateMedian(updated);
-          onComplete({
-            medianMs,
-            falseStarts: falseStartsRef.current,
-          });
-        } else {
-          scheduleWaitingRound(round + 1);
-        }
-      }, 750);
+      if (round >= TOTAL_ROUNDS) {
+        setPhase('done');
+      } else {
+        setRound((prev) => prev + 1);
+        scheduleGreenSignal();
+      }
     }
   };
 
-  const getVisualState = () => {
-    switch (phase) {
-      case 'waiting':
-        return {
-          bg: '#7f1d1d',
-          border: '#f87171',
-          heading: 'Изчакай зеления сигнал...',
-          sub: 'Не натискай, докато екранът не светне в зелено.',
-        };
-      case 'ready':
-        return {
-          bg: '#065f46',
-          border: '#34d399',
-          heading: 'НАТИСНИ СЕГА!',
-          sub: 'Максимална скорост!',
-        };
-      case 'too-early':
-        return {
-          bg: '#78350f',
-          border: '#fbbf24',
-          heading: 'Твърде рано!',
-          sub: 'Натисни отново, за да повториш рунда.',
-        };
-      case 'round-done':
-        return {
-          bg: '#0c4a6e',
-          border: '#38bdf8',
-          heading: `${lastReactionMs ?? 0} ms`,
-          sub: round >= totalRounds ? 'Изчисляване на резултата...' : 'Следващ рунд...',
-        };
-      default:
-        return {
-          bg: '#172033',
-          border: 'rgba(148, 163, 184, 0.22)',
-          heading: 'Тест за скорост на реакция',
-          sub: `Изчакай зеления сигнал и натисни възможно най-бързо в ${totalRounds} рунда.`,
-        };
-    }
-  };
+  let padBackground = '#172033';
+  let padBorder = '1px solid rgba(148, 163, 184, 0.22)';
+  let statusTitle = t.waitForGreen;
+  let statusSubtitle = t.doNotPressEarly;
 
-  const visual = getVisualState();
+  if (phase === 'ready') {
+    padBackground = '#065f46';
+    padBorder = '1px solid #34d399';
+    statusTitle = t.pressNow;
+    statusSubtitle = t.maxSpeed;
+  } else if (phase === 'too-early') {
+    padBackground = '#7f1d1d';
+    padBorder = '1px solid #f87171';
+    statusTitle = t.tooEarly;
+    statusSubtitle = t.tapToRetryRound;
+  } else if (phase === 'done') {
+    padBackground = '#0f172a';
+    padBorder = '1px solid rgba(56, 189, 248, 0.45)';
+    statusTitle = t.calculatingResult;
+    statusSubtitle = `${t.recordedAttempts} ${samples.map((s) => `${s} ms`).join(' · ')}`;
+  } else if (lastReactionMs !== null) {
+    statusSubtitle = `${lastReactionMs} ms · ${t.nextRound}`;
+  }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+    <section
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        flex: 1,
+      }}
+    >
       <div
         style={{
           display: 'flex',
@@ -157,89 +185,99 @@ export function ReactionGame({
           alignItems: 'center',
         }}
       >
-        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
-          1 / 5 · Скорост на реакция
+        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+          {t.reactionTitle}
         </span>
-        <span style={{ fontWeight: 700, color: '#38bdf8' }}>
-          Рунд {round} от {totalRounds}
+        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+          {formatText(t.roundOf, { round, total: TOTAL_ROUNDS })}
         </span>
       </div>
 
-      {phase === 'idle' ? (
+      {phase === 'intro' ? (
         <div
           className="card"
           style={{
-            flex: 1,
             display: 'flex',
             flexDirection: 'column',
+            gap: '12px',
+            flex: 1,
             justifyContent: 'center',
-            alignItems: 'center',
-            gap: '16px',
-            textAlign: 'center',
           }}
         >
-          <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-            {visual.heading}
-          </span>
-          <span style={{ color: '#94a3b8', fontSize: '0.92rem', maxWidth: '290px' }}>
-            {visual.sub}
-          </span>
+          <h2 style={{ margin: 0, fontSize: '1.35rem' }}>
+            {t.readyForReaction}
+          </h2>
+          <p style={{ margin: 0, color: '#94a3b8', lineHeight: 1.5 }}>
+            {formatText(t.reactionInstructions, { total: TOTAL_ROUNDS })}
+          </p>
           <button
             type="button"
             className="btn-primary"
-            style={{ maxWidth: '240px' }}
-            onClick={handleStart}
+            onClick={handleStartTest}
           >
-            Започни рундовете
+            {t.startRounds}
           </button>
         </div>
       ) : (
-        <>
-          <button
-            type="button"
-            onPointerDown={handlePadPress}
-            style={{
-              flex: 1,
-              minHeight: '260px',
-              borderRadius: '22px',
-              border: `2px solid ${visual.border}`,
-              backgroundColor: visual.bg,
-              color: '#f8fafc',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '10px',
-              padding: '20px',
-              textAlign: 'center',
-              cursor: 'pointer',
-              touchAction: 'manipulation',
-              transition: 'background-color 0.1s ease, border-color 0.1s ease',
-            }}
+        <button
+          type="button"
+          onClick={handlePadPress}
+          style={{
+            flex: 1,
+            width: '100%',
+            borderRadius: '18px',
+            backgroundColor: padBackground,
+            border: padBorder,
+            color: '#f8fafc',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '10px',
+            padding: '20px',
+            textAlign: 'center',
+            cursor: 'pointer',
+            transition: 'background-color 0.12s ease, border-color 0.12s ease',
+          }}
+        >
+          <span style={{ fontSize: '1.65rem', fontWeight: 800 }}>
+            {statusTitle}
+          </span>
+          <span
+            style={{ color: '#cbd5e1', fontSize: '0.95rem', lineHeight: 1.4 }}
           >
-            <span style={{ fontSize: '1.85rem', fontWeight: 900 }}>
-              {visual.heading}
-            </span>
-            <span style={{ color: '#e2e8f0', fontSize: '0.92rem', maxWidth: '280px' }}>
-              {visual.sub}
-            </span>
-          </button>
-
-          <div
-            className="card"
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              fontSize: '0.88rem',
-            }}
-          >
-            <span style={{ color: '#94a3b8' }}>Записани опити:</span>
-            <strong>
-              {attemptsMs.length > 0 ? `${attemptsMs.join(' ms · ')} ms` : '—'}
-            </strong>
-          </div>
-        </>
+            {statusSubtitle}
+          </span>
+        </button>
       )}
-    </div>
+      {phase !== 'intro' && samples.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: '8px',
+            flexWrap: 'wrap',
+            fontSize: '0.8rem',
+            color: '#94a3b8',
+            paddingTop: '2px',
+          }}
+        >
+          {samples.map((ms, index) => (
+            <span
+              key={`${index}-${ms}`}
+              style={{
+                padding: '4px 8px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(148, 163, 184, 0.12)',
+                color: '#e2e8f0',
+                fontWeight: 600,
+              }}
+            >
+              #{index + 1}: {ms} ms
+            </span>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

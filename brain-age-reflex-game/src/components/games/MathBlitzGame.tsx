@@ -1,162 +1,204 @@
-/* eslint-disable no-useless-assignment */
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Capacitor } from '@capacitor/core';
+import {
+  formatText,
+  getTranslations,
+  type AppLocale,
+} from '../../i18n/translations';
 import type { MathBlitzMetrics } from '../../types/game';
-import { triggerErrorFeedback, triggerSuccessFeedback } from '../../utils/haptics';
 
 interface MathBlitzGameProps {
-  totalRounds?: number;
+  locale?: AppLocale;
   onComplete: (metrics: MathBlitzMetrics) => void;
 }
 
-interface MathProblem {
-  expression: string;
+interface MathQuestion {
+  prompt: string;
   answer: number;
   options: number[];
 }
 
-const DEFAULT_ROUNDS = 7;
+type Phase = 'intro' | 'playing' | 'done';
 
-// Read elapsed milliseconds from a start timestamp outside React purity checks
-function readElapsedMs(startMs: number): number {
-  return Math.max(150, Math.round(performance.now() - startMs));
-}
+const TOTAL_ROUNDS = 8;
 
-// Pick a random integer in [min, max] inclusive
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-// Generate an arithmetic prompt with four distinct plausible choices
-function createMathProblem(roundIndex: number): MathProblem {
-  const operatorPool: Array<'+' | '-' | '×'> =
-    roundIndex >= 3 ? ['+', '-', '×'] : ['+', '-'];
-  const op = operatorPool[randomInt(0, operatorPool.length - 1)];
+function buildQuestion(roundIndex: number): MathQuestion {
+  const ops: Array<'+' | '-' | '×'> =
+    roundIndex < 3 ? ['+', '-'] : ['+', '-', '×'];
+  const op = ops[randomInt(0, ops.length - 1)];
 
-  let expression = '';
+  // eslint-disable-next-line no-useless-assignment
+  let prompt = '';
+  // eslint-disable-next-line no-useless-assignment
   let answer = 0;
 
   if (op === '+') {
-    const a = randomInt(8, 38);
-    const b = randomInt(6, 29);
-    expression = `${a} + ${b}`;
+    const a = randomInt(12, 58);
+    const b = randomInt(8, 45);
     answer = a + b;
+    prompt = `${a} + ${b}`;
   } else if (op === '-') {
-    const a = randomInt(18, 55);
-    const b = randomInt(5, a - 3);
-    expression = `${a} - ${b}`;
+    const a = randomInt(25, 85);
+    const b = randomInt(7, Math.min(35, a - 5));
     answer = a - b;
+    prompt = `${a} - ${b}`;
   } else {
-    const a = randomInt(3, 9);
-    const b = randomInt(2, 8);
-    expression = `${a} × ${b}`;
+    const a = randomInt(3, 11);
+    const b = randomInt(3, 9);
     answer = a * b;
+    prompt = `${a} × ${b}`;
   }
 
   const distractors = new Set<number>();
   while (distractors.size < 3) {
-    const offset = randomInt(-6, 6);
+    const offset = randomInt(-9, 9);
     const candidate = answer + offset;
     if (candidate !== answer && candidate >= 0) {
       distractors.add(candidate);
     }
   }
 
-  const combined = [answer, ...Array.from(distractors)];
-  for (let i = combined.length - 1; i > 0; i--) {
-    const j = randomInt(0, i);
-    [combined[i], combined[j]] = [combined[j], combined[i]];
-  }
+  const options = [answer, ...Array.from(distractors)].sort(
+    () => Math.random() - 0.5
+  );
 
-  return {
-    expression,
-    answer,
-    options: combined,
-  };
+  return { prompt, answer, options };
+}
+
+async function triggerMathHaptic(
+  style: ImpactStyle = ImpactStyle.Light
+): Promise<void> {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    await Haptics.impact({ style });
+  } catch {
+    // Ignore haptic errors on unsupported devices
+  }
 }
 
 export function MathBlitzGame({
-  totalRounds = DEFAULT_ROUNDS,
+  locale = 'bg',
   onComplete,
 }: MathBlitzGameProps) {
-  const [started, setStarted] = useState<boolean>(false);
+  const t = getTranslations(locale);
+
+  const [phase, setPhase] = useState<Phase>('intro');
   const [round, setRound] = useState<number>(1);
-  const [problem, setProblem] = useState<MathProblem>(() => createMathProblem(1));
-  const [feedback, setFeedback] = useState<'correct' | 'wrong' | null>(null);
+  const [question, setQuestion] = useState<MathQuestion>(() => buildQuestion(0));
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [correctCount, setCorrectCount] = useState<number>(0);
+  const [reactionTimesMs, setReactionTimesMs] = useState<number[]>([]);
+  const [locked, setLocked] = useState<boolean>(false);
 
-  const correctCountRef = useRef<number>(0);
-  const answerTimesRef = useRef<number[]>([]);
-  const promptStartRef = useRef<number>(0);
-  const nextTimerRef = useRef<number | null>(null);
-  const lockedRef = useRef<boolean>(false);
+  const questionStartRef = useRef<number>(0);
+  const advanceTimerRef = useRef<number | null>(null);
+  const completedRef = useRef<boolean>(false);
 
-  const clearNextTimer = () => {
-    if (nextTimerRef.current !== null) {
-      window.clearTimeout(nextTimerRef.current);
-      nextTimerRef.current = null;
+  const clearAdvanceTimer = useCallback(() => {
+    if (advanceTimerRef.current !== null) {
+      window.clearTimeout(advanceTimerRef.current);
+      advanceTimerRef.current = null;
     }
-  };
-
-  useEffect(() => {
-    return () => clearNextTimer();
   }, []);
 
-  const handleStart = () => {
-    clearNextTimer();
-    correctCountRef.current = 0;
-    answerTimesRef.current = [];
-    lockedRef.current = false;
-
-    const firstProblem = createMathProblem(1);
-    setRound(1);
-    setProblem(firstProblem);
+  const presentQuestion = useCallback((roundNum: number) => {
+    const nextQ = buildQuestion(roundNum - 1);
+    setQuestion(nextQ);
     setFeedback(null);
-    setStarted(true);
-    promptStartRef.current = performance.now();
+    setLocked(false);
+    questionStartRef.current = performance.now();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      clearAdvanceTimer();
+    };
+  }, [clearAdvanceTimer]);
+
+  useEffect(() => {
+    if (phase !== 'done' || completedRef.current) return;
+    completedRef.current = true;
+
+    const finishTimer = window.setTimeout(() => {
+      const accuracy = correctCount / TOTAL_ROUNDS;
+      const avgAnswerMs =
+        reactionTimesMs.length > 0
+          ? Math.round(
+              reactionTimesMs.reduce((sum, item) => sum + item, 0) /
+                reactionTimesMs.length
+            )
+          : 0;
+
+      onComplete({
+        accuracy,
+        avgAnswerMs,
+      });
+    }, 350);
+
+    return () => {
+      window.clearTimeout(finishTimer);
+    };
+  }, [phase, correctCount, reactionTimesMs, onComplete]);
+
+  const handleStart = () => {
+    completedRef.current = false;
+    setCorrectCount(0);
+    setReactionTimesMs([]);
+    setRound(1);
+    setPhase('playing');
+    void triggerMathHaptic(ImpactStyle.Light);
+    presentQuestion(1);
   };
 
-  const handleSelectOption = (chosenValue: number) => {
-    if (!started || lockedRef.current) return;
-    lockedRef.current = true;
+  const handleSelectOption = (selected: number) => {
+    if (phase !== 'playing' || locked) return;
+    setLocked(true);
 
-    const elapsedMs = readElapsedMs(promptStartRef.current);
-    answerTimesRef.current = [...answerTimesRef.current, elapsedMs];
+    const elapsedMs = Math.max(
+      1,
+      Math.round(performance.now() - questionStartRef.current)
+    );
+    const nextTimes = [...reactionTimesMs, elapsedMs];
+    setReactionTimesMs(nextTimes);
 
-    const isCorrect = chosenValue === problem.answer;
+    const isCorrect = selected === question.answer;
+    const nextCorrect = isCorrect ? correctCount + 1 : correctCount;
     if (isCorrect) {
-      void triggerSuccessFeedback();
-      correctCountRef.current += 1;
+      setCorrectCount(nextCorrect);
+      setFeedback(t.correctAnswer);
+      void triggerMathHaptic(ImpactStyle.Light);
     } else {
-      void triggerErrorFeedback();
+      setFeedback(
+        formatText(t.wrongAnswerWithSolution, { answer: question.answer })
+      );
+      void triggerMathHaptic(ImpactStyle.Heavy);
     }
 
-    setFeedback(isCorrect ? 'correct' : 'wrong');
-
-    nextTimerRef.current = window.setTimeout(() => {
-      if (round >= totalRounds) {
-        const accuracy = Number((correctCountRef.current / totalRounds).toFixed(3));
-        const totalMs = answerTimesRef.current.reduce((sum, val) => sum + val, 0);
-        const avgAnswerMs = Math.round(
-          totalMs / Math.max(1, answerTimesRef.current.length)
-        );
-
-        onComplete({
-          accuracy,
-          avgAnswerMs,
-        });
-        return;
+    advanceTimerRef.current = window.setTimeout(() => {
+      if (round >= TOTAL_ROUNDS) {
+        setPhase('done');
+      } else {
+        const nextRound = round + 1;
+        setRound(nextRound);
+        presentQuestion(nextRound);
       }
-
-      const nextRoundNumber = round + 1;
-      setRound(nextRoundNumber);
-      setProblem(createMathProblem(nextRoundNumber));
-      setFeedback(null);
-      lockedRef.current = false;
-      promptStartRef.current = performance.now();
-    }, 280);
+    }, 420);
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+    <section
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px',
+        flex: 1,
+      }}
+    >
       <div
         style={{
           display: 'flex',
@@ -164,88 +206,78 @@ export function MathBlitzGame({
           alignItems: 'center',
         }}
       >
-        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
-          5 / 5 · Бърза математика
+        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+          {t.mathBlitzTitle}
         </span>
-        <span style={{ fontWeight: 700, color: '#38bdf8' }}>
-          Рунд {round} от {totalRounds}
+        <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+          {formatText(t.roundOf, { round, total: TOTAL_ROUNDS })}
         </span>
       </div>
 
-      {!started ? (
+      {phase === 'intro' && (
         <div
           className="card"
           style={{
-            flex: 1,
             display: 'flex',
             flexDirection: 'column',
+            gap: '12px',
+            flex: 1,
             justifyContent: 'center',
-            alignItems: 'center',
-            gap: '16px',
-            textAlign: 'center',
           }}
         >
-          <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>
-            Готов за бърза математика?
-          </span>
-          <span style={{ color: '#94a3b8', fontSize: '0.92rem', maxWidth: '290px' }}>
-            Реши {totalRounds} кратки сметки с `+`, `-` и `×` възможно най-точно и бързо.
-          </span>
-          <button
-            type="button"
-            className="btn-primary"
-            style={{ maxWidth: '240px' }}
-            onClick={handleStart}
-          >
-            Започни теста
+          <h2 style={{ margin: 0, fontSize: '1.35rem' }}>{t.readyForMath}</h2>
+          <p style={{ margin: 0, color: '#94a3b8', lineHeight: 1.5 }}>
+            {formatText(t.mathInstructions, { total: TOTAL_ROUNDS })}
+          </p>
+          <button type="button" className="btn-primary" onClick={handleStart}>
+            {t.startTest}
           </button>
         </div>
-      ) : (
-        <>
-          <p
-            style={{
-              margin: 0,
-              color: '#cbd5e1',
-              fontSize: '0.92rem',
-              textAlign: 'center',
-            }}
-          >
-            Избери верния резултат:
-          </p>
+      )}
 
+      {phase === 'playing' && (
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '12px',
+            flex: 1,
+          }}
+        >
           <div
             className="card"
             style={{
               flex: 1,
-              minHeight: '180px',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: '10px',
-              borderColor:
-                feedback === 'correct'
-                  ? 'rgba(16, 185, 129, 0.55)'
-                  : feedback === 'wrong'
-                  ? 'rgba(239, 68, 68, 0.55)'
-                  : 'rgba(148, 163, 184, 0.16)',
+              gap: '8px',
+              textAlign: 'center',
             }}
           >
-            <span
+            <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
+              {t.chooseCorrectAnswer}
+            </span>
+            <div
               style={{
-                fontSize: '2.4rem',
+                fontSize: '2.35rem',
                 fontWeight: 900,
-                color: '#f8fafc',
-                fontVariantNumeric: 'tabular-nums',
+                letterSpacing: '0.02em',
               }}
             >
-              {problem.expression} = ?
-            </span>
-
-            <span style={{ fontSize: '0.84rem', color: '#94a3b8', minHeight: '18px' }}>
-              {feedback === 'correct' && 'Верен отговор!'}
-              {feedback === 'wrong' && `Грешно — верният отговор е ${problem.answer}`}
-            </span>
+              {question.prompt}
+            </div>
+            <div
+              style={{
+                minHeight: '22px',
+                fontSize: '0.88rem',
+                fontWeight: 700,
+                color: feedback === t.correctAnswer ? '#34d399' : '#fbbf24',
+              }}
+            >
+              {feedback ?? ''}
+            </div>
           </div>
 
           <div
@@ -255,30 +287,39 @@ export function MathBlitzGame({
               gap: '10px',
             }}
           >
-            {problem.options.map((option) => (
+            {question.options.map((opt) => (
               <button
-                key={option}
+                key={opt}
                 type="button"
-                onPointerDown={() => handleSelectOption(option)}
+                disabled={locked}
+                onClick={() => handleSelectOption(opt)}
+                className="btn-secondary"
                 style={{
-                  padding: '16px 12px',
-                  borderRadius: '14px',
-                  border: '1.5px solid rgba(148, 163, 184, 0.22)',
-                  backgroundColor: '#172033',
-                  color: '#f8fafc',
+                  padding: '16px',
+                  fontSize: '1.2rem',
                   fontWeight: 800,
-                  fontSize: '1.15rem',
-                  fontVariantNumeric: 'tabular-nums',
-                  cursor: 'pointer',
-                  touchAction: 'manipulation',
                 }}
               >
-                {option}
+                {opt}
               </button>
             ))}
           </div>
-        </>
+        </div>
       )}
-    </div>
+
+      {phase === 'done' && (
+        <div
+          className="card"
+          style={{
+            flex: 1,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <span style={{ color: '#94a3b8' }}>{t.calculatingResult}</span>
+        </div>
+      )}
+    </section>
   );
 }
