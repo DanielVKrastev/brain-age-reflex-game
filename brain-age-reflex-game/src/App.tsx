@@ -7,6 +7,11 @@ import { NumberHuntGame } from './components/games/NumberHuntGame';
 import { ReactionGame } from './components/games/ReactionGame';
 import { StroopGame } from './components/games/StroopGame';
 import { ResultCard } from './components/ResultCard';
+import {
+  getTranslations,
+  SUPPORTED_LOCALES,
+  type AppLocale,
+} from './i18n/translations';
 import type {
   GameStage,
   MathBlitzMetrics,
@@ -23,6 +28,7 @@ import {
   formatHistoryDate,
   loadSessionHistory,
 } from './utils/historyStorage';
+import { loadSavedLocale, saveLocale } from './utils/localeStorage';
 import { calculateSessionResult } from './utils/scoring';
 
 interface PartialSessionMetrics {
@@ -48,6 +54,9 @@ export function App() {
   const [history, setHistory] = useState<SessionHistoryEntry[]>(() =>
     loadSessionHistory()
   );
+  const [locale, setLocale] = useState<AppLocale>(() => loadSavedLocale());
+
+  const t = useMemo(() => getTranslations(locale), [locale]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -79,6 +88,11 @@ export function App() {
       }
     };
   }, [stage]);
+
+  const handleLocaleChange = (nextLocale: AppLocale) => {
+    setLocale(nextLocale);
+    saveLocale(nextLocale);
+  };
 
   const startNewSession = () => {
     setMetrics({});
@@ -185,6 +199,7 @@ export function App() {
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
+              gap: '8px',
             }}
           >
             <span
@@ -194,10 +209,33 @@ export function App() {
                 fontSize: '1.05rem',
               }}
             >
-              Brain Age & Reflex
+              {t.appTitle}
             </span>
 
-            {stage !== 'welcome' && (
+            {stage === 'welcome' ? (
+              <select
+                aria-label="Language"
+                value={locale}
+                onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
+                style={{
+                  backgroundColor: '#172033',
+                  color: '#e2e8f0',
+                  border: '1px solid rgba(148, 163, 184, 0.25)',
+                  borderRadius: '10px',
+                  padding: '6px 10px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  outline: 'none',
+                }}
+              >
+                {SUPPORTED_LOCALES.map((item) => (
+                  <option key={item.code} value={item.code}>
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
               <button
                 type="button"
                 onClick={() => setStage('welcome')}
@@ -211,7 +249,7 @@ export function App() {
                   cursor: 'pointer',
                 }}
               >
-                Начало
+                {t.homeButton}
               </button>
             )}
           </div>
@@ -259,10 +297,10 @@ export function App() {
               <span
                 style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.85rem' }}
               >
-                5 МИНИ-ИГРИ · КОГНИТИВЕН ТЕСТ
+                {t.badgeFiveGames}
               </span>
               <h1 style={{ margin: 0, fontSize: '1.75rem', lineHeight: 1.15 }}>
-                На колко години е мозъкът ти?
+                {t.heroHeading}
               </h1>
               <p
                 style={{
@@ -272,9 +310,7 @@ export function App() {
                   fontSize: '0.94rem',
                 }}
               >
-                Премини през реакция, визуална памет, търсене на числа, ефект
-                на Струп и бърза математика, за да изчислим относителната ти
-                мозъчна възраст.
+                {t.heroDescription}
               </p>
             </div>
 
@@ -296,8 +332,10 @@ export function App() {
                   }}
                 >
                   <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
-                    Рекорд (най-млад мозък):{' '}
-                    <strong style={{ color: '#34d399' }}>{bestBrainAge} г.</strong>
+                    {t.bestRecord}:{' '}
+                    <strong style={{ color: '#34d399' }}>
+                      {bestBrainAge} {t.yearsShort}
+                    </strong>
                   </span>
                   <button
                     type="button"
@@ -311,7 +349,7 @@ export function App() {
                       padding: 0,
                     }}
                   >
-                    Изчисти
+                    {t.clearHistory}
                   </button>
                 </div>
 
@@ -335,11 +373,11 @@ export function App() {
                       }}
                     >
                       <span style={{ color: '#cbd5e1' }}>
-                        {formatHistoryDate(item.playedAt)}
+                        {formatHistoryDate(item.playedAt, locale)}
                       </span>
                       <span>
                         <strong style={{ color: '#38bdf8' }}>
-                          {item.brainAge} г.
+                          {item.brainAge} {t.yearsShort}
                         </strong>{' '}
                         <span style={{ color: '#94a3b8' }}>
                           ({item.overallScore}/100)
@@ -356,7 +394,7 @@ export function App() {
               className="btn-primary"
               onClick={startNewSession}
             >
-              Започни теста
+              {t.startTest}
             </button>
           </section>
         )}
@@ -398,6 +436,7 @@ export function App() {
 
         {stage === 'result' && scores && completedSession && (
           <ResultCard
+            locale={locale}
             scores={scores}
             metrics={completedSession}
             history={history}

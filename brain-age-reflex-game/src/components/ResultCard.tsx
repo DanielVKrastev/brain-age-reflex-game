@@ -1,4 +1,10 @@
 import { useState } from 'react';
+import {
+  formatText,
+  getTranslations,
+  type AppLocale,
+  type TranslationDictionary,
+} from '../i18n/translations';
 import type {
   NormalizedScores,
   SessionHistoryEntry,
@@ -7,30 +13,37 @@ import type {
 import { formatHistoryDate } from '../utils/historyStorage';
 
 interface ResultCardProps {
+  locale?: AppLocale;
   scores: NormalizedScores;
   metrics: SessionMetrics;
   history: SessionHistoryEntry[];
   onPlayAgain: () => void;
 }
 
-function buildShareText(scores: NormalizedScores, metrics: SessionMetrics): string {
+function buildShareText(
+  t: TranslationDictionary,
+  scores: NormalizedScores,
+  metrics: SessionMetrics
+): string {
   return [
-    `Мозъчна възраст: ${scores.brainAge} г. (${scores.title})`,
-    `Общ индекс: ${scores.overallScore}/100`,
-    `Реакция: ${metrics.reaction.medianMs} ms (${scores.reactionScore})`,
-    `Памет: ${Math.round(metrics.memory.accuracy * 100)}% (${scores.memoryScore})`,
-    `Числа: ${metrics.numberHunt.totalSeconds} s (${scores.numberHuntScore})`,
-    `Струп: ${Math.round(metrics.stroop.accuracy * 100)}% (${scores.stroopScore})`,
-    `Математика: ${Math.round(metrics.mathBlitz.accuracy * 100)}% (${scores.mathBlitzScore})`,
+    `${t.brainAge}: ${scores.brainAge} ${t.yearsShort} (${scores.title})`,
+    `${t.overallIndex}: ${scores.overallScore}/100`,
+    `${t.reactionTitle}: ${metrics.reaction.medianMs} ms (${scores.reactionScore})`,
+    `${t.memoryTitle}: ${Math.round(metrics.memory.accuracy * 100)}% (${scores.memoryScore})`,
+    `${t.numberHuntTitle}: ${metrics.numberHunt.totalSeconds} s (${scores.numberHuntScore})`,
+    `${t.stroopTitle}: ${Math.round(metrics.stroop.accuracy * 100)}% (${scores.stroopScore})`,
+    `${t.mathBlitzTitle}: ${Math.round(metrics.mathBlitz.accuracy * 100)}% (${scores.mathBlitzScore})`,
   ].join('\n');
 }
 
 export function ResultCard({
+  locale = 'bg',
   scores,
   metrics,
   history,
   onPlayAgain,
 }: ResultCardProps) {
+  const t = getTranslations(locale);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
 
   // history[0] is the just-saved session; history[1] is the previous session
@@ -40,60 +53,62 @@ export function ResultCard({
     : null;
 
   const handleShare = async () => {
-    const shareText = buildShareText(scores, metrics);
+    const shareText = buildShareText(t, scores, metrics);
 
     try {
       if (navigator.share) {
         await navigator.share({
-          title: 'Brain Age & Reflex',
+          title: t.appTitle,
           text: shareText,
         });
-        setShareStatus('Споделено!');
+        setShareStatus(t.sharedOk);
         return;
       }
 
       if (navigator.clipboard) {
         await navigator.clipboard.writeText(shareText);
-        setShareStatus('Резултатът е копиран!');
+        setShareStatus(t.copiedOk);
         return;
       }
 
-      setShareStatus('Копирането не се поддържа в този браузър.');
+      setShareStatus(t.copyNotSupported);
     } catch {
-      setShareStatus('Споделянето е отменено.');
+      setShareStatus(t.shareCancelled);
     }
   };
 
   const breakdownRows = [
     {
-      label: 'Скорост на реакция',
+      label: t.reactionTitle,
       raw: `${metrics.reaction.medianMs} ms`,
       score: scores.reactionScore,
     },
     {
-      label: 'Визуална памет',
+      label: t.memoryTitle,
       raw: `${Math.round(metrics.memory.accuracy * 100)}% · ${metrics.memory.avgRoundSeconds} s`,
       score: scores.memoryScore,
     },
     {
-      label: 'Търсене на числа',
+      label: t.numberHuntTitle,
       raw: `${metrics.numberHunt.totalSeconds} s`,
       score: scores.numberHuntScore,
     },
     {
-      label: 'Ефект на Струп',
+      label: t.stroopTitle,
       raw: `${Math.round(metrics.stroop.accuracy * 100)}% · ${metrics.stroop.avgAnswerMs} ms`,
       score: scores.stroopScore,
     },
     {
-      label: 'Бърза математика',
+      label: t.mathBlitzTitle,
       raw: `${Math.round(metrics.mathBlitz.accuracy * 100)}% · ${metrics.mathBlitz.avgAnswerMs} ms`,
       score: scores.mathBlitzScore,
     },
   ];
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+    <section
+      style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}
+    >
       <div
         className="card"
         style={{
@@ -105,14 +120,24 @@ export function ResultCard({
           padding: '14px',
         }}
       >
-        <span style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 700 }}>
-          ОЦЕНКА НА СЕСИЯТА · {scores.title.toUpperCase()}
+        <span
+          style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 700 }}
+        >
+          {t.sessionEvaluation} · {scores.title.toUpperCase()}
         </span>
-        <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: 1.05, color: '#34d399' }}>
-          {scores.brainAge} г.
+        <div
+          style={{
+            fontSize: '2.8rem',
+            fontWeight: 900,
+            lineHeight: 1.05,
+            color: '#34d399',
+          }}
+        >
+          {scores.brainAge} {t.yearsShort}
         </div>
         <span style={{ color: '#94a3b8', fontSize: '0.86rem' }}>
-          Мозъчна възраст · Общ индекс <strong>{scores.overallScore} / 100</strong>
+          {t.brainAge} · {t.overallIndex}{' '}
+          <strong>{scores.overallScore} / 100</strong>
         </span>
 
         {ageDelta !== null && (
@@ -125,9 +150,11 @@ export function ResultCard({
                 ageDelta < 0 ? '#34d399' : ageDelta > 0 ? '#fbbf24' : '#94a3b8',
             }}
           >
-            {ageDelta < 0 && `${Math.abs(ageDelta)} г. по-млад от предишния опит`}
-            {ageDelta > 0 && `+${ageDelta} г. спрямо предишния опит`}
-            {ageDelta === 0 && 'Същият резултат като предишния опит'}
+            {ageDelta < 0 &&
+              `${Math.abs(ageDelta)} ${t.yearsShort} ${t.betterThanPrevious}`}
+            {ageDelta > 0 &&
+              `+${ageDelta} ${t.yearsShort} ${t.worseThanPrevious}`}
+            {ageDelta === 0 && t.sameAsPrevious}
           </span>
         )}
       </div>
@@ -145,10 +172,20 @@ export function ResultCard({
             }}
           >
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{row.label}</div>
-              <div style={{ color: '#94a3b8', fontSize: '0.76rem' }}>{row.raw}</div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>
+                {row.label}
+              </div>
+              <div style={{ color: '#94a3b8', fontSize: '0.76rem' }}>
+                {row.raw}
+              </div>
             </div>
-            <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#38bdf8' }}>
+            <span
+              style={{
+                fontWeight: 800,
+                fontSize: '0.98rem',
+                color: '#38bdf8',
+              }}
+            >
               {row.score}
             </span>
           </div>
@@ -165,8 +202,13 @@ export function ResultCard({
             gap: '6px',
           }}
         >
-          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8' }}>
-            ПОСЛЕДНИ ОПИТИ ({history.length})
+          <span
+            style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8' }}
+          >
+            {formatText('{label} ({count})', {
+              label: t.recentAttempts,
+              count: history.length,
+            })}
           </span>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             {history.slice(0, 4).map((entry, idx) => (
@@ -186,7 +228,9 @@ export function ResultCard({
                   fontSize: '0.78rem',
                 }}
               >
-                <strong style={{ color: '#f8fafc' }}>{entry.brainAge} г.</strong>{' '}
+                <strong style={{ color: '#f8fafc' }}>
+                  {entry.brainAge} {t.yearsShort}
+                </strong>{' '}
                 <span style={{ color: '#94a3b8' }}>
                   ({formatHistoryDate(entry.playedAt)})
                 </span>
@@ -208,12 +252,19 @@ export function ResultCard({
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px',
+          marginTop: 'auto',
+        }}
+      >
         <button type="button" className="btn-secondary" onClick={handleShare}>
-          Сподели резултата
+          {t.shareResult}
         </button>
         <button type="button" className="btn-primary" onClick={onPlayAgain}>
-          Нов тест
+          {t.playAgain}
         </button>
       </div>
     </section>

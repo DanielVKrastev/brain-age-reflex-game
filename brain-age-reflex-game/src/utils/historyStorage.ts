@@ -1,3 +1,4 @@
+import type { AppLocale } from '../i18n/translations';
 import type { NormalizedScores, SessionHistoryEntry } from '../types/game';
 
 const STORAGE_KEY = 'brain_age_reflex_history_v1';
@@ -51,10 +52,13 @@ export function clearSessionHistory(): void {
   }
 }
 
-export function formatHistoryDate(isoDate: string): string {
+export function formatHistoryDate(
+  isoDate: string,
+  locale: AppLocale = 'bg'
+): string {
   try {
     const date = new Date(isoDate);
-    return new Intl.DateTimeFormat('bg-BG', {
+    return new Intl.DateTimeFormat(locale, {
       day: '2-digit',
       month: '2-digit',
       hour: '2-digit',
