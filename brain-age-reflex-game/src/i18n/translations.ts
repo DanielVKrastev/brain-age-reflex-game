@@ -324,6 +324,35 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         titleBalancedRhythm: 'Ausgewogener Rhythmus',
         titleCalmPace: 'Ruhiges Tempo',
         titleNeedsWarmup: 'Braucht Aufwärmen',
+        readyForMemory: 'Bereit für das visuelle Gedächtnis?',
+        memoryIntroHint: 'Merke dir die leuchtenden Felder und wiederhole sie in derselben Runde.',
+        memoryPreviewHint:
+            'Die Felder leuchten 1,5 Sekunden lang auf, danach kannst du sie antippen.',
+        memoryRepeatCount: 'Wähle {count} markierte Felder.',
+        memoryNextRound: 'Weiter zur nächsten Runde...',
+        startRoundN: 'Runde {round} starten',
+        foundInRound: 'In der Runde gefunden',
+
+        readyForNumberHunt: 'Bereit für die Zahlensuche?',
+        numberHuntInstructions:
+            'Tippe die Zahlen von 1 bis {count} so schnell wie möglich in aufsteigender Reihenfolge.',
+        startRound: 'Runde starten',
+        pressInOrder: 'Der Reihe nach tippen:',
+        numberLabel: 'Zahl {number}',
+        doneLabel: 'Fertig!',
+        progressLabel: 'Fortschritt',
+        reshuffleBoard: 'Neu mischen',
+
+        readyForStroop: 'Bereit für den Stroop-Effekt?',
+        stroopInstructions:
+            'Tippe auf die Schaltfläche mit der SCHRIFTFARBE des Wortes – nicht auf das geschriebene Wort.',
+        stroopPrompt: 'Tippe die SCHRIFTFARBE von:',
+        stroopCorrect: 'Stark fokussiert!',
+        stroopWrong: 'Die Farbe war {color}',
+        colorRed: 'ROT',
+        colorBlue: 'BLAU',
+        colorGreen: 'GRÜN',
+        colorYellow: 'GELB',
     },
     es: {
         appTitle: 'Brain Age & Reflex',
@@ -379,6 +408,35 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         titleBalancedRhythm: 'Ritmo equilibrado',
         titleCalmPace: 'Ritmo tranquilo',
         titleNeedsWarmup: 'Necesita calentar',
+        readyForMemory: '¿Listo para memoria visual?',
+        memoryIntroHint: 'Memoriza los cuadros iluminados y repítelos en la misma ronda.',
+        memoryPreviewHint:
+            'Los cuadros se iluminarán durante 1,5 segundos y luego podrás marcarlos.',
+        memoryRepeatCount: 'Selecciona {count} cuadros resaltados.',
+        memoryNextRound: 'Pasando a la siguiente ronda...',
+        startRoundN: 'Iniciar ronda {round}',
+        foundInRound: 'Encontrados en la ronda',
+
+        readyForNumberHunt: '¿Listo para búsqueda de números?',
+        numberHuntInstructions:
+            'Toca los números del 1 al {count} en orden ascendente lo más rápido posible.',
+        startRound: 'Iniciar ronda',
+        pressInOrder: 'Toca en orden:',
+        numberLabel: 'Número {number}',
+        doneLabel: '¡Listo!',
+        progressLabel: 'Progreso',
+        reshuffleBoard: 'Reordenar',
+
+        readyForStroop: '¿Listo para el efecto Stroop?',
+        stroopInstructions:
+            'Toca el botón del COLOR DE TINTA de la palabra, no lo que dice la palabra.',
+        stroopPrompt: 'Toca el COLOR DE TINTA de:',
+        stroopCorrect: '¡Buen enfoque!',
+        stroopWrong: 'El color era {color}',
+        colorRed: 'ROJO',
+        colorBlue: 'AZUL',
+        colorGreen: 'VERDE',
+        colorYellow: 'AMARILLO',
     },
     fr: {
         appTitle: 'Brain Age & Reflex',
@@ -434,6 +492,35 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         titleBalancedRhythm: 'Rythme équilibré',
         titleCalmPace: 'Rythme posé',
         titleNeedsWarmup: 'Besoin d’échauffement',
+        readyForMemory: 'Prêt pour la mémoire visuelle ?',
+        memoryIntroHint: 'Mémorise les cases allumées et répète-les dans la même manche.',
+        memoryPreviewHint:
+            'Les cases s’allument pendant 1,5 seconde, puis tu pourras les sélectionner.',
+        memoryRepeatCount: 'Sélectionne {count} cases mises en évidence.',
+        memoryNextRound: 'Passage à la manche suivante...',
+        startRoundN: 'Lancer la manche {round}',
+        foundInRound: 'Trouvés dans la manche',
+
+        readyForNumberHunt: 'Prêt pour la chasse aux nombres ?',
+        numberHuntInstructions:
+            'Appuie sur les nombres de 1 à {count} dans l’ordre croissant le plus vite possible.',
+        startRound: 'Lancer la manche',
+        pressInOrder: 'Appuie dans l’ordre :',
+        numberLabel: 'Nombre {number}',
+        doneLabel: 'Terminé !',
+        progressLabel: 'Progression',
+        reshuffleBoard: 'Mélanger',
+
+        readyForStroop: 'Prêt pour l’effet Stroop ?',
+        stroopInstructions:
+            'Appuie sur le bouton de la COULEUR D’ENCRE du mot, pas sur le mot lui-même.',
+        stroopPrompt: 'Appuie sur la COULEUR D’ENCRE de :',
+        stroopCorrect: 'Belle concentration !',
+        stroopWrong: 'La couleur était {color}',
+        colorRed: 'ROUGE',
+        colorBlue: 'BLEU',
+        colorGreen: 'VERT',
+        colorYellow: 'JAUNE',
     },
     it: {
         appTitle: 'Brain Age & Reflex',
@@ -489,6 +576,35 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         titleBalancedRhythm: 'Ritmo equilibrato',
         titleCalmPace: 'Ritmo calmo',
         titleNeedsWarmup: 'Serve riscaldamento',
+        readyForMemory: 'Pronto per la memoria visiva?',
+        memoryIntroHint: 'Memorizza le caselle illuminate e ripetile nello stesso turno.',
+        memoryPreviewHint:
+            'Le caselle si illumineranno per 1,5 secondi, poi potrai selezionarle.',
+        memoryRepeatCount: 'Seleziona {count} caselle evidenziate.',
+        memoryNextRound: 'Passaggio al turno successivo...',
+        startRoundN: 'Inizia turno {round}',
+        foundInRound: 'Trovati nel turno',
+
+        readyForNumberHunt: 'Pronto per la ricerca numeri?',
+        numberHuntInstructions:
+            'Tocca i numeri da 1 a {count} in ordine crescente il più velocemente possibile.',
+        startRound: 'Inizia turno',
+        pressInOrder: 'Tocca in ordine:',
+        numberLabel: 'Numero {number}',
+        doneLabel: 'Fatto!',
+        progressLabel: 'Avanzamento',
+        reshuffleBoard: 'Rimescola',
+
+        readyForStroop: 'Pronto per l’effetto Stroop?',
+        stroopInstructions:
+            'Tocca il pulsante del COLORE D’INCHIOSTRO della parola, non la parola stessa.',
+        stroopPrompt: 'Tocca il COLORE D’INCHIOSTRO di:',
+        stroopCorrect: 'Ottima concentrazione!',
+        stroopWrong: 'Il colore era {color}',
+        colorRed: 'ROSSO',
+        colorBlue: 'BLU',
+        colorGreen: 'VERDE',
+        colorYellow: 'GIALLO',
     },
     tr: {
         appTitle: 'Brain Age & Reflex',
@@ -544,6 +660,35 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         titleBalancedRhythm: 'Dengeli Ritim',
         titleCalmPace: 'Sakin Tempo',
         titleNeedsWarmup: 'Isınmaya İhtiyacı Var',
+        readyForMemory: 'Görsel Hafızaya hazır mısın?',
+        memoryIntroHint: 'Parlayan kareleri aklında tut ve aynı turda tekrar et.',
+        memoryPreviewHint:
+            'Kareler 1,5 saniye yanar, ardından onları seçebilirsin.',
+        memoryRepeatCount: 'Vurgulanan {count} kareyi seç.',
+        memoryNextRound: 'Sonraki tura geçiliyor...',
+        startRoundN: '{round}. Turu Başlat',
+        foundInRound: 'Turda bulunan',
+
+        readyForNumberHunt: 'Sayı Avına hazır mısın?',
+        numberHuntInstructions:
+            '1’den {count}’a kadar olan sayılara artan sırayla olabildiğince hızlı dokun.',
+        startRound: 'Turu Başlat',
+        pressInOrder: 'Sırayla dokun:',
+        numberLabel: 'Sayı {number}',
+        doneLabel: 'Tamam!',
+        progressLabel: 'İlerleme',
+        reshuffleBoard: 'Yeniden Karıştır',
+
+        readyForStroop: 'Stroop Etkisine hazır mısın?',
+        stroopInstructions:
+            'Kelimenin anlamına değil, kelimenin YAZI RENGİNE karşılık gelen düğmeye dokun.',
+        stroopPrompt: 'YAZI RENGİNE dokun:',
+        stroopCorrect: 'Harika odak!',
+        stroopWrong: 'Renk {color} idi',
+        colorRed: 'KIRMIZI',
+        colorBlue: 'MAVİ',
+        colorGreen: 'YEŞİL',
+        colorYellow: 'SARI',
     },
     ro: {
         appTitle: 'Brain Age & Reflex',
@@ -599,6 +744,35 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         titleBalancedRhythm: 'Ritm echilibrat',
         titleCalmPace: 'Ritm calm',
         titleNeedsWarmup: 'Are nevoie de încălzire',
+        readyForMemory: 'Pregătit pentru memorie vizuală?',
+        memoryIntroHint: 'Memorează pătratele aprinse și repetă-le în aceeași rundă.',
+        memoryPreviewHint:
+            'Pătratele se vor aprinde timp de 1,5 secunde, apoi le poți selecta.',
+        memoryRepeatCount: 'Selectează {count} pătrate evidențiate.',
+        memoryNextRound: 'Trecem la runda următoare...',
+        startRoundN: 'Începe runda {round}',
+        foundInRound: 'Găsite în rundă',
+
+        readyForNumberHunt: 'Pregătit pentru căutare numere?',
+        numberHuntInstructions:
+            'Atinge numerele de la 1 la {count} în ordine crescătoare cât mai repede.',
+        startRound: 'Începe runda',
+        pressInOrder: 'Atinge în ordine:',
+        numberLabel: 'Numărul {number}',
+        doneLabel: 'Gata!',
+        progressLabel: 'Progres',
+        reshuffleBoard: 'Amestecă din nou',
+
+        readyForStroop: 'Pregătit pentru efectul Stroop?',
+        stroopInstructions:
+            'Atinge butonul cu CULOAREA CERNELEI cuvântului, nu cuvântul în sine.',
+        stroopPrompt: 'Atinge CULOAREA CERNELEI pentru:',
+        stroopCorrect: 'Concentrare bună!',
+        stroopWrong: 'Culoarea era {color}',
+        colorRed: 'ROȘU',
+        colorBlue: 'ALBASTRU',
+        colorGreen: 'VERDE',
+        colorYellow: 'GALBEN',
     },
 };
 
