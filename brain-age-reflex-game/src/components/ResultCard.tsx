@@ -1,9 +1,15 @@
 import { useState } from 'react';
-import type { NormalizedScores, SessionMetrics } from '../types/game';
+import type {
+  NormalizedScores,
+  SessionHistoryEntry,
+  SessionMetrics,
+} from '../types/game';
+import { formatHistoryDate } from '../utils/historyStorage';
 
 interface ResultCardProps {
   scores: NormalizedScores;
   metrics: SessionMetrics;
+  history: SessionHistoryEntry[];
   onPlayAgain: () => void;
 }
 
@@ -19,8 +25,19 @@ function buildShareText(scores: NormalizedScores, metrics: SessionMetrics): stri
   ].join('\n');
 }
 
-export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
+export function ResultCard({
+  scores,
+  metrics,
+  history,
+  onPlayAgain,
+}: ResultCardProps) {
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+
+  // history[0] is the just-saved session; history[1] is the previous session
+  const previousSession = history.length > 1 ? history[1] : null;
+  const ageDelta = previousSession
+    ? scores.brainAge - previousSession.brainAge
+    : null;
 
   const handleShare = async () => {
     const shareText = buildShareText(scores, metrics);
@@ -76,7 +93,7 @@ export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
   ];
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+    <section style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
       <div
         className="card"
         style={{
@@ -85,18 +102,34 @@ export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
           alignItems: 'center',
           textAlign: 'center',
           gap: '4px',
-          padding: '16px 14px',
+          padding: '14px',
         }}
       >
         <span style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 700 }}>
           ОЦЕНКА НА СЕСИЯТА · {scores.title.toUpperCase()}
         </span>
-        <div style={{ fontSize: '3rem', fontWeight: 900, lineHeight: 1.05, color: '#34d399' }}>
+        <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: 1.05, color: '#34d399' }}>
           {scores.brainAge} г.
         </div>
-        <span style={{ color: '#94a3b8', fontSize: '0.88rem' }}>
+        <span style={{ color: '#94a3b8', fontSize: '0.86rem' }}>
           Мозъчна възраст · Общ индекс <strong>{scores.overallScore} / 100</strong>
         </span>
+
+        {ageDelta !== null && (
+          <span
+            style={{
+              marginTop: '4px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color:
+                ageDelta < 0 ? '#34d399' : ageDelta > 0 ? '#fbbf24' : '#94a3b8',
+            }}
+          >
+            {ageDelta < 0 && `${Math.abs(ageDelta)} г. по-млад от предишния опит`}
+            {ageDelta > 0 && `+${ageDelta} г. спрямо предишния опит`}
+            {ageDelta === 0 && 'Същият резултат като предишния опит'}
+          </span>
+        )}
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -105,22 +138,63 @@ export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
             key={row.label}
             className="card"
             style={{
-              padding: '10px 14px',
+              padding: '9px 14px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{row.label}</div>
-              <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>{row.raw}</div>
+              <div style={{ fontWeight: 700, fontSize: '0.88rem' }}>{row.label}</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.76rem' }}>{row.raw}</div>
             </div>
-            <span style={{ fontWeight: 800, fontSize: '1rem', color: '#38bdf8' }}>
+            <span style={{ fontWeight: 800, fontSize: '0.98rem', color: '#38bdf8' }}>
               {row.score}
             </span>
           </div>
         ))}
       </div>
+
+      {history.length > 1 && (
+        <div
+          className="card"
+          style={{
+            padding: '10px 14px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px',
+          }}
+        >
+          <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#94a3b8' }}>
+            ПОСЛЕДНИ ОПИТИ ({history.length})
+          </span>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            {history.slice(0, 4).map((entry, idx) => (
+              <div
+                key={entry.id}
+                style={{
+                  padding: '5px 9px',
+                  borderRadius: '10px',
+                  backgroundColor:
+                    idx === 0
+                      ? 'rgba(56, 189, 248, 0.16)'
+                      : 'rgba(148, 163, 184, 0.1)',
+                  border:
+                    idx === 0
+                      ? '1px solid rgba(56, 189, 248, 0.45)'
+                      : '1px solid transparent',
+                  fontSize: '0.78rem',
+                }}
+              >
+                <strong style={{ color: '#f8fafc' }}>{entry.brainAge} г.</strong>{' '}
+                <span style={{ color: '#94a3b8' }}>
+                  ({formatHistoryDate(entry.playedAt)})
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {shareStatus && (
         <div

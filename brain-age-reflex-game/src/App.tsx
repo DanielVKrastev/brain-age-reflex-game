@@ -1,22 +1,28 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { App as CapacitorApp } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { MathBlitzGame } from './components/games/MathBlitzGame';
 import { MemoryGame } from './components/games/MemoryGame';
 import { NumberHuntGame } from './components/games/NumberHuntGame';
 import { ReactionGame } from './components/games/ReactionGame';
 import { StroopGame } from './components/games/StroopGame';
 import { ResultCard } from './components/ResultCard';
-import { useEffect } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { App as CapacitorApp } from '@capacitor/app';
 import type {
   GameStage,
   MathBlitzMetrics,
   MemoryMetrics,
   NumberHuntMetrics,
   ReactionMetrics,
+  SessionHistoryEntry,
   SessionMetrics,
   StroopMetrics,
 } from './types/game';
+import {
+  appendSessionHistory,
+  clearSessionHistory,
+  formatHistoryDate,
+  loadSessionHistory,
+} from './utils/historyStorage';
 import { calculateSessionResult } from './utils/scoring';
 
 interface PartialSessionMetrics {
@@ -39,6 +45,9 @@ export function App() {
   const [stage, setStage] = useState<GameStage>('welcome');
   const [sessionId, setSessionId] = useState<number>(0);
   const [metrics, setMetrics] = useState<PartialSessionMetrics>({});
+  const [history, setHistory] = useState<SessionHistoryEntry[]>(() =>
+    loadSessionHistory()
+  );
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -98,8 +107,33 @@ export function App() {
   };
 
   const handleMathBlitzComplete = (mathBlitz: MathBlitzMetrics) => {
-    setMetrics((prev) => ({ ...prev, mathBlitz }));
+    const nextMetrics: PartialSessionMetrics = { ...metrics, mathBlitz };
+    setMetrics(nextMetrics);
+
+    if (
+      nextMetrics.reaction &&
+      nextMetrics.memory &&
+      nextMetrics.numberHunt &&
+      nextMetrics.stroop
+    ) {
+      const fullSession: SessionMetrics = {
+        reaction: nextMetrics.reaction,
+        memory: nextMetrics.memory,
+        numberHunt: nextMetrics.numberHunt,
+        stroop: nextMetrics.stroop,
+        mathBlitz,
+      };
+      const calculated = calculateSessionResult(fullSession);
+      const updatedHistory = appendSessionHistory(calculated);
+      setHistory(updatedHistory);
+    }
+
     setStage('result');
+  };
+
+  const handleClearHistory = () => {
+    clearSessionHistory();
+    setHistory([]);
   };
 
   const completedSession: SessionMetrics | null = useMemo(() => {
@@ -126,6 +160,11 @@ export function App() {
     if (!completedSession) return null;
     return calculateSessionResult(completedSession);
   }, [completedSession]);
+
+  const bestBrainAge = useMemo(() => {
+    if (history.length === 0) return null;
+    return Math.min(...history.map((item) => item.brainAge));
+  }, [history]);
 
   const currentGameIndex = GAME_STAGES.indexOf(stage);
   const showProgressBar = currentGameIndex !== -1;
@@ -208,7 +247,7 @@ export function App() {
             style={{
               display: 'flex',
               flexDirection: 'column',
-              gap: '18px',
+              gap: '14px',
               flex: 1,
               justifyContent: 'center',
             }}
@@ -238,6 +277,79 @@ export function App() {
                 мозъчна възраст.
               </p>
             </div>
+
+            {history.length > 0 && bestBrainAge !== null && (
+              <div
+                className="card"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                  padding: '12px 14px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <span style={{ fontSize: '0.82rem', color: '#94a3b8' }}>
+                    Рекорд (най-млад мозък):{' '}
+                    <strong style={{ color: '#34d399' }}>{bestBrainAge} г.</strong>
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleClearHistory}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#64748b',
+                      fontSize: '0.75rem',
+                      cursor: 'pointer',
+                      padding: 0,
+                    }}
+                  >
+                    Изчисти
+                  </button>
+                </div>
+
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '6px',
+                  }}
+                >
+                  {history.slice(0, 3).map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        fontSize: '0.84rem',
+                        paddingTop: '6px',
+                        borderTop: '1px solid rgba(148, 163, 184, 0.12)',
+                      }}
+                    >
+                      <span style={{ color: '#cbd5e1' }}>
+                        {formatHistoryDate(item.playedAt)}
+                      </span>
+                      <span>
+                        <strong style={{ color: '#38bdf8' }}>
+                          {item.brainAge} г.
+                        </strong>{' '}
+                        <span style={{ color: '#94a3b8' }}>
+                          ({item.overallScore}/100)
+                        </span>
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               type="button"
@@ -288,6 +400,7 @@ export function App() {
           <ResultCard
             scores={scores}
             metrics={completedSession}
+            history={history}
             onPlayAgain={startNewSession}
           />
         )}

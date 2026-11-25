@@ -49,3 +49,18 @@ export interface NormalizedScores {
   brainAge: number; // 18..65
   title: string;
 }
+
+export interface SessionHistoryEntry {
+  id: string;
+  playedAt: string; // ISO date string
+  brainAge: number;
+  overallScore: number;
+  title: string;
+  scores: {
+    reactionScore: number;
+    memoryScore: number;
+    numberHuntScore: number;
+    stroopScore: number;
+    mathBlitzScore: number;
+  };
+}
