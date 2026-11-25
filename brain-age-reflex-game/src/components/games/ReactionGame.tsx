@@ -7,186 +7,235 @@ interface ReactionGameProps {
   onComplete: (metrics: ReactionMetrics) => void;
 }
 
-type Phase = 'waiting' | 'ready' | 'too-early' | 'round-done';
+type Phase = 'idle' | 'waiting' | 'ready' | 'too-early' | 'round-done';
 
-const TOTAL_ROUNDS_DEFAULT = 3;
+const TOTAL_ROUNDS_DEFAULT = 5;
+
+function readNowMs(): number {
+  return performance.now();
+}
+
+function pickDelayMs(): number {
+  return 1100 + Math.floor(Math.random() * 1900);
+}
 
 export function ReactionGame({
   totalRounds = TOTAL_ROUNDS_DEFAULT,
   onComplete,
 }: ReactionGameProps) {
-  const [round, setRound] = useState(1);
-  const [phase, setPhase] = useState<Phase>('waiting');
-  const [lastMs, setLastMs] = useState<number | null>(null);
-  const [attempts, setAttempts] = useState<number[]>([]);
+  const [round, setRound] = useState<number>(1);
+  const [phase, setPhase] = useState<Phase>('idle');
+  const [lastReactionMs, setLastReactionMs] = useState<number | null>(null);
+  const [attemptsMs, setAttemptsMs] = useState<number[]>([]);
 
-  const timeoutRef = useRef<number | null>(null);
-  const greenStartRef = useRef<number>(0);
+  const attemptsRef = useRef<number[]>([]);
+  const falseStartsRef = useRef<number>(0);
+  const goTimestampRef = useRef<number>(0);
+  const timerRef = useRef<number | null>(null);
 
-  // Clear pending timeout safely
   const clearTimer = () => {
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
+    if (timerRef.current !== null) {
+      window.clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
   };
 
-  // Schedule the green signal for the current round
-  const scheduleGreenSignal = () => {
-    clearTimer();
-    const delayMs = 1200 + Math.floor(Math.random() * 2300); // 1200 - 3500 ms
-    timeoutRef.current = window.setTimeout(() => {
-      greenStartRef.current = performance.now();
-      setPhase('ready');
-    }, delayMs);
-  };
-
-  // Start the first round on mount and clean up timers on unmount
   useEffect(() => {
-    scheduleGreenSignal();
     return () => clearTimer();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handlePadClick = () => {
+  const scheduleWaitingRound = (roundNumber: number) => {
+    clearTimer();
+    setRound(roundNumber);
+    setLastReactionMs(null);
+    setPhase('waiting');
+
+    const delay = pickDelayMs();
+    timerRef.current = window.setTimeout(() => {
+      goTimestampRef.current = readNowMs();
+      setPhase('ready');
+    }, delay);
+  };
+
+  const handleStart = () => {
+    attemptsRef.current = [];
+    falseStartsRef.current = 0;
+    setAttemptsMs([]);
+    scheduleWaitingRound(1);
+  };
+
+  const handlePadPress = () => {
+    if (phase === 'idle') return;
+
     if (phase === 'waiting') {
       clearTimer();
+      falseStartsRef.current += 1;
       setPhase('too-early');
       return;
     }
 
     if (phase === 'too-early') {
-      // Restart the same round cleanly inside the event handler
-      setPhase('waiting');
-      setLastMs(null);
-      scheduleGreenSignal();
+      scheduleWaitingRound(round);
       return;
     }
 
     if (phase === 'ready') {
-      const reactionMs = Math.max(
-        50,
-        Math.round(performance.now() - greenStartRef.current)
-      );
-      const updated = [...attempts, reactionMs];
-      setAttempts(updated);
-      setLastMs(reactionMs);
+      const elapsed = Math.max(80, Math.round(readNowMs() - goTimestampRef.current));
+      const updated = [...attemptsRef.current, elapsed];
+      attemptsRef.current = updated;
 
-      if (round >= totalRounds) {
-        const medianMs = calculateMedian(updated);
-        window.setTimeout(() => {
-          onComplete({ medianMs, attemptsMs: updated });
-        }, 450);
-      } else {
-        setPhase('round-done');
-      }
+      setAttemptsMs(updated);
+      setLastReactionMs(elapsed);
+      setPhase('round-done');
+
+      clearTimer();
+      timerRef.current = window.setTimeout(() => {
+        if (round >= totalRounds) {
+          const medianMs = calculateMedian(updated);
+          onComplete({
+            medianMs,
+            falseStarts: falseStartsRef.current,
+          });
+        } else {
+          scheduleWaitingRound(round + 1);
+        }
+      }, 750);
     }
   };
 
-  const handleNextRound = () => {
-    // Advance round state and schedule next signal directly in event handler
-    setRound((prev) => prev + 1);
-    setPhase('waiting');
-    setLastMs(null);
-    scheduleGreenSignal();
+  const getVisualState = () => {
+    switch (phase) {
+      case 'waiting':
+        return {
+          bg: '#7f1d1d',
+          border: '#f87171',
+          heading: 'Изчакай зеления сигнал...',
+          sub: 'Не натискай, докато екранът не светне в зелено.',
+        };
+      case 'ready':
+        return {
+          bg: '#065f46',
+          border: '#34d399',
+          heading: 'НАТИСНИ СЕГА!',
+          sub: 'Максимална скорост!',
+        };
+      case 'too-early':
+        return {
+          bg: '#78350f',
+          border: '#fbbf24',
+          heading: 'Твърде рано!',
+          sub: 'Натисни отново, за да повториш рунда.',
+        };
+      case 'round-done':
+        return {
+          bg: '#0c4a6e',
+          border: '#38bdf8',
+          heading: `${lastReactionMs ?? 0} ms`,
+          sub: round >= totalRounds ? 'Изчисляване на резултата...' : 'Следващ рунд...',
+        };
+      default:
+        return {
+          bg: '#172033',
+          border: 'rgba(148, 163, 184, 0.22)',
+          heading: 'Тест за скорост на реакция',
+          sub: `Изчакай зеления сигнал и натисни възможно най-бързо в ${totalRounds} рунда.`,
+        };
+    }
   };
 
-  const getPadStyle = () => {
-    if (phase === 'ready') {
-      return {
-        backgroundColor: '#059669',
-        borderColor: '#34d399',
-      };
-    }
-    if (phase === 'too-early') {
-      return {
-        backgroundColor: '#991b1b',
-        borderColor: '#f87171',
-      };
-    }
-    return {
-      backgroundColor: '#172033',
-      borderColor: 'rgba(148, 163, 184, 0.22)',
-    };
-  };
+  const visual = getVisualState();
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>1 / 4 · Реакция</span>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+        }}
+      >
+        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+          1 / 5 · Скорост на реакция
+        </span>
         <span style={{ fontWeight: 700, color: '#38bdf8' }}>
-          Опит {round} от {totalRounds}
+          Рунд {round} от {totalRounds}
         </span>
       </div>
 
-      <p style={{ margin: 0, color: '#cbd5e1', fontSize: '0.95rem', lineHeight: 1.45 }}>
-        Изчакай екрана да стане <strong>зелен</strong> и натисни възможно най-бързо.
-      </p>
-
-      <button
-        type="button"
-        onPointerDown={handlePadClick}
-        style={{
-          ...getPadStyle(),
-          flex: 1,
-          minHeight: '300px',
-          width: '100%',
-          borderRadius: '22px',
-          borderWidth: '2px',
-          borderStyle: 'solid',
-          color: '#f8fafc',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '10px',
-          cursor: 'pointer',
-          userSelect: 'none',
-          touchAction: 'manipulation',
-        }}
-      >
-        {phase === 'waiting' && (
-          <>
-            <span style={{ fontSize: '1.5rem', fontWeight: 800 }}>Изчакай зеленото...</span>
-            <span style={{ color: '#cbd5e1', fontSize: '0.9rem' }}>Не натискай твърде рано</span>
-          </>
-        )}
-
-        {phase === 'ready' && (
-          <>
-            <span style={{ fontSize: '2rem', fontWeight: 900 }}>НАТИСНИ СЕГА!</span>
-            <span style={{ fontSize: '0.95rem', opacity: 0.9 }}>Максимална скорост</span>
-          </>
-        )}
-
-        {phase === 'too-early' && (
-          <>
-            <span style={{ fontSize: '1.5rem', fontWeight: 800 }}>Твърде рано!</span>
-            <span style={{ fontSize: '0.92rem' }}>Натисни тук, за да опиташ отново</span>
-          </>
-        )}
-
-        {phase === 'round-done' && (
-          <>
-            <span style={{ fontSize: '2.2rem', fontWeight: 900, color: '#6ee7b7' }}>
-              {lastMs} ms
-            </span>
-            <span style={{ fontSize: '0.92rem', color: '#e2e8f0' }}>
-              Записан опит {attempts.length}
-            </span>
-          </>
-        )}
-      </button>
-
-      {phase === 'round-done' && round < totalRounds ? (
-        <button type="button" className="btn-primary" onClick={handleNextRound}>
-          Следващ опит ({round + 1}/{totalRounds})
-        </button>
-      ) : (
-        <div className="card" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem' }}>
-          <span style={{ color: '#94a3b8' }}>Записани опити:</span>
-          <strong>{attempts.length > 0 ? `${attempts.join(' ms · ')} ms` : '—'}</strong>
+      {phase === 'idle' ? (
+        <div
+          className="card"
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            alignItems: 'center',
+            gap: '16px',
+            textAlign: 'center',
+          }}
+        >
+          <span style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+            {visual.heading}
+          </span>
+          <span style={{ color: '#94a3b8', fontSize: '0.92rem', maxWidth: '290px' }}>
+            {visual.sub}
+          </span>
+          <button
+            type="button"
+            className="btn-primary"
+            style={{ maxWidth: '240px' }}
+            onClick={handleStart}
+          >
+            Започни рундовете
+          </button>
         </div>
+      ) : (
+        <>
+          <button
+            type="button"
+            onPointerDown={handlePadPress}
+            style={{
+              flex: 1,
+              minHeight: '260px',
+              borderRadius: '22px',
+              border: `2px solid ${visual.border}`,
+              backgroundColor: visual.bg,
+              color: '#f8fafc',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '10px',
+              padding: '20px',
+              textAlign: 'center',
+              cursor: 'pointer',
+              touchAction: 'manipulation',
+              transition: 'background-color 0.1s ease, border-color 0.1s ease',
+            }}
+          >
+            <span style={{ fontSize: '1.85rem', fontWeight: 900 }}>
+              {visual.heading}
+            </span>
+            <span style={{ color: '#e2e8f0', fontSize: '0.92rem', maxWidth: '280px' }}>
+              {visual.sub}
+            </span>
+          </button>
+
+          <div
+            className="card"
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              fontSize: '0.88rem',
+            }}
+          >
+            <span style={{ color: '#94a3b8' }}>Записани опити:</span>
+            <strong>
+              {attemptsMs.length > 0 ? `${attemptsMs.join(' ms · ')} ms` : '—'}
+            </strong>
+          </div>
+        </>
       )}
     </div>
   );

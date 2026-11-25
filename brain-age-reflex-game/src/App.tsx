@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { MathBlitzGame } from './components/games/MathBlitzGame';
 import { MemoryGame } from './components/games/MemoryGame';
 import { NumberHuntGame } from './components/games/NumberHuntGame';
 import { ReactionGame } from './components/games/ReactionGame';
@@ -6,6 +7,7 @@ import { StroopGame } from './components/games/StroopGame';
 import { ResultCard } from './components/ResultCard';
 import type {
   GameStage,
+  MathBlitzMetrics,
   MemoryMetrics,
   NumberHuntMetrics,
   ReactionMetrics,
@@ -19,15 +21,15 @@ interface PartialSessionMetrics {
   memory?: MemoryMetrics;
   numberHunt?: NumberHuntMetrics;
   stroop?: StroopMetrics;
+  mathBlitz?: MathBlitzMetrics;
 }
 
-const STAGE_ORDER: GameStage[] = [
-  'welcome',
+const GAME_STAGES: GameStage[] = [
   'reaction',
   'memory',
   'number-hunt',
   'stroop',
-  'result',
+  'math-blitz',
 ];
 
 export function App() {
@@ -35,7 +37,6 @@ export function App() {
   const [sessionId, setSessionId] = useState<number>(0);
   const [metrics, setMetrics] = useState<PartialSessionMetrics>({});
 
-  // Start a fresh session and reset previously collected metrics
   const startNewSession = () => {
     setMetrics({});
     setSessionId((prev) => prev + 1);
@@ -59,6 +60,11 @@ export function App() {
 
   const handleStroopComplete = (stroop: StroopMetrics) => {
     setMetrics((prev) => ({ ...prev, stroop }));
+    setStage('math-blitz');
+  };
+
+  const handleMathBlitzComplete = (mathBlitz: MathBlitzMetrics) => {
+    setMetrics((prev) => ({ ...prev, mathBlitz }));
     setStage('result');
   };
 
@@ -67,7 +73,8 @@ export function App() {
       !metrics.reaction ||
       !metrics.memory ||
       !metrics.numberHunt ||
-      !metrics.stroop
+      !metrics.stroop ||
+      !metrics.mathBlitz
     ) {
       return null;
     }
@@ -77,6 +84,7 @@ export function App() {
       memory: metrics.memory,
       numberHunt: metrics.numberHunt,
       stroop: metrics.stroop,
+      mathBlitz: metrics.mathBlitz,
     };
   }, [metrics]);
 
@@ -85,12 +93,8 @@ export function App() {
     return calculateSessionResult(completedSession);
   }, [completedSession]);
 
-  const activeGameIndex = STAGE_ORDER.indexOf(stage);
-  const showProgressBar =
-    stage === 'reaction' ||
-    stage === 'memory' ||
-    stage === 'number-hunt' ||
-    stage === 'stroop';
+  const currentGameIndex = GAME_STAGES.indexOf(stage);
+  const showProgressBar = currentGameIndex !== -1;
 
   return (
     <div className="app-shell">
@@ -143,18 +147,18 @@ export function App() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(4, 1fr)',
+                gridTemplateColumns: 'repeat(5, 1fr)',
                 gap: '6px',
               }}
             >
-              {[1, 2, 3, 4].map((step) => (
+              {[0, 1, 2, 3, 4].map((stepIndex) => (
                 <div
-                  key={step}
+                  key={stepIndex}
                   style={{
                     height: '5px',
                     borderRadius: '999px',
                     backgroundColor:
-                      step <= activeGameIndex
+                      stepIndex <= currentGameIndex
                         ? '#38bdf8'
                         : 'rgba(148, 163, 184, 0.18)',
                     transition: 'background-color 0.2s ease',
@@ -182,7 +186,7 @@ export function App() {
               <span
                 style={{ color: '#38bdf8', fontWeight: 700, fontSize: '0.85rem' }}
               >
-                4 МИНИ-ИГРИ · КОГНИТИВЕН ТЕСТ
+                5 МИНИ-ИГРИ · КОГНИТИВЕН ТЕСТ
               </span>
               <h1 style={{ margin: 0, fontSize: '1.75rem', lineHeight: 1.15 }}>
                 На колко години е мозъкът ти?
@@ -195,8 +199,9 @@ export function App() {
                   fontSize: '0.94rem',
                 }}
               >
-                Премини през реакция, визуална памет, търсене на числа и ефект
-                на Струп, за да изчислим относителната ти мозъчна възраст.
+                Премини през реакция, визуална памет, търсене на числа, ефект
+                на Струп и бърза математика, за да изчислим относителната ти
+                мозъчна възраст.
               </p>
             </div>
 
@@ -235,6 +240,13 @@ export function App() {
           <StroopGame
             key={`stroop-${sessionId}`}
             onComplete={handleStroopComplete}
+          />
+        )}
+
+        {stage === 'math-blitz' && (
+          <MathBlitzGame
+            key={`math-blitz-${sessionId}`}
+            onComplete={handleMathBlitzComplete}
           />
         )}
 

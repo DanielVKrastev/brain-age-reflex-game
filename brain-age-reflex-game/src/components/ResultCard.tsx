@@ -7,7 +7,6 @@ interface ResultCardProps {
   onPlayAgain: () => void;
 }
 
-// Build a compact shareable summary text for social apps and messaging
 function buildShareText(scores: NormalizedScores, metrics: SessionMetrics): string {
   return [
     `Мозъчна възраст: ${scores.brainAge} г. (${scores.title})`,
@@ -16,6 +15,7 @@ function buildShareText(scores: NormalizedScores, metrics: SessionMetrics): stri
     `Памет: ${Math.round(metrics.memory.accuracy * 100)}% (${scores.memoryScore})`,
     `Числа: ${metrics.numberHunt.totalSeconds} s (${scores.numberHuntScore})`,
     `Струп: ${Math.round(metrics.stroop.accuracy * 100)}% (${scores.stroopScore})`,
+    `Математика: ${Math.round(metrics.mathBlitz.accuracy * 100)}% (${scores.mathBlitzScore})`,
   ].join('\n');
 }
 
@@ -43,7 +43,6 @@ export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
 
       setShareStatus('Копирането не се поддържа в този браузър.');
     } catch {
-      // User cancelled share sheet or clipboard permission was denied
       setShareStatus('Споделянето е отменено.');
     }
   };
@@ -69,10 +68,15 @@ export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
       raw: `${Math.round(metrics.stroop.accuracy * 100)}% · ${metrics.stroop.avgAnswerMs} ms`,
       score: scores.stroopScore,
     },
+    {
+      label: 'Бърза математика',
+      raw: `${Math.round(metrics.mathBlitz.accuracy * 100)}% · ${metrics.mathBlitz.avgAnswerMs} ms`,
+      score: scores.mathBlitzScore,
+    },
   ];
 
   return (
-    <section style={{ display: 'flex', flexDirection: 'column', gap: '14px', flex: 1 }}>
+    <section style={{ display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
       <div
         className="card"
         style={{
@@ -80,38 +84,38 @@ export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
           flexDirection: 'column',
           alignItems: 'center',
           textAlign: 'center',
-          gap: '6px',
-          padding: '20px 16px',
+          gap: '4px',
+          padding: '16px 14px',
         }}
       >
-        <span style={{ color: '#38bdf8', fontSize: '0.8rem', fontWeight: 700 }}>
+        <span style={{ color: '#38bdf8', fontSize: '0.78rem', fontWeight: 700 }}>
           ОЦЕНКА НА СЕСИЯТА · {scores.title.toUpperCase()}
         </span>
-        <div style={{ fontSize: '3.2rem', fontWeight: 900, lineHeight: 1.05, color: '#34d399' }}>
+        <div style={{ fontSize: '3rem', fontWeight: 900, lineHeight: 1.05, color: '#34d399' }}>
           {scores.brainAge} г.
         </div>
-        <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>
+        <span style={{ color: '#94a3b8', fontSize: '0.88rem' }}>
           Мозъчна възраст · Общ индекс <strong>{scores.overallScore} / 100</strong>
         </span>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {breakdownRows.map((row) => (
           <div
             key={row.label}
             className="card"
             style={{
-              padding: '12px 14px',
+              padding: '10px 14px',
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
             <div>
-              <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>{row.label}</div>
-              <div style={{ color: '#94a3b8', fontSize: '0.8rem' }}>{row.raw}</div>
+              <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{row.label}</div>
+              <div style={{ color: '#94a3b8', fontSize: '0.78rem' }}>{row.raw}</div>
             </div>
-            <span style={{ fontWeight: 800, fontSize: '1.05rem', color: '#38bdf8' }}>
+            <span style={{ fontWeight: 800, fontSize: '1rem', color: '#38bdf8' }}>
               {row.score}
             </span>
           </div>
@@ -122,7 +126,7 @@ export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
         <div
           style={{
             textAlign: 'center',
-            fontSize: '0.85rem',
+            fontSize: '0.84rem',
             color: '#6ee7b7',
           }}
         >
@@ -130,7 +134,7 @@ export function ResultCard({ scores, metrics, onPlayAgain }: ResultCardProps) {
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: 'auto' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'auto' }}>
         <button type="button" className="btn-secondary" onClick={handleShare}>
           Сподели резултата
         </button>

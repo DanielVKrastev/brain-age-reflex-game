@@ -1,118 +1,91 @@
-import type { NormalizedScores, SessionMetrics } from '../types/game';
-
-// Calibration limits (easy to adjust after actual tests)
-const SCORING_CONFIG = {
-  reaction: {
-    bestMs: 180,
-    worstMs: 500,
-    weight: 0.30,
-  },
-  memory: {
-    targetRoundSec: 2.0,
-    maxTimePenalty: 20,
-    weight: 0.25,
-  },
-  numberHunt: {
-    bestSec: 6.0,
-    worstSec: 22.0,
-    weight: 0.20,
-  },
-  stroop: {
-    bestAnswerMs: 550,
-    worstAnswerMs: 1800,
-    weight: 0.25,
-  },
-  age: {
-    minAge: 18,
-    maxAge: 65,
-    baseAge: 62,
-    slope: 0.44,
-  },
-};
+import type {
+  MathBlitzMetrics,
+  MemoryMetrics,
+  NormalizedScores,
+  NumberHuntMetrics,
+  ReactionMetrics,
+  SessionMetrics,
+  StroopMetrics,
+} from '../types/game';
 
 function clamp(value: number, min: number, max: number): number {
-  return Math.min(Math.max(value, min), max);
+  return Math.max(min, Math.min(max, value));
+}
+
+export function scoreReaction(metrics: ReactionMetrics): number {
+  const speedScore = ((420 - metrics.medianMs) / (420 - 170)) * 100;
+  const penalty = metrics.falseStarts * 8;
+  return Math.round(clamp(speedScore - penalty, 0, 100));
+}
+
+export function scoreMemory(metrics: MemoryMetrics): number {
+  const accuracyComponent = metrics.accuracy * 80;
+  const speedBonus = clamp(((6.0 - metrics.avgRoundSeconds) / (6.0 - 1.5)) * 20, 0, 20);
+  return Math.round(clamp(accuracyComponent + speedBonus, 0, 100));
+}
+
+export function scoreNumberHunt(metrics: NumberHuntMetrics): number {
+  const raw = ((24.0 - metrics.totalSeconds) / (24.0 - 7.5)) * 100;
+  return Math.round(clamp(raw, 0, 100));
+}
+
+export function scoreStroop(metrics: StroopMetrics): number {
+  const accuracyComponent = metrics.accuracy * 75;
+  const speedComponent = clamp(((1600 - metrics.avgAnswerMs) / (1600 - 450)) * 25, 0, 25);
+  return Math.round(clamp(accuracyComponent + speedComponent, 0, 100));
+}
+
+export function scoreMathBlitz(metrics: MathBlitzMetrics): number {
+  const accuracyComponent = metrics.accuracy * 75;
+  const speedComponent = clamp(((2200 - metrics.avgAnswerMs) / (2200 - 550)) * 25, 0, 25);
+  return Math.round(clamp(accuracyComponent + speedComponent, 0, 100));
+}
+
+export function getBrainAgeTitle(brainAge: number): string {
+  if (brainAge <= 22) return 'Светкавичен ум';
+  if (brainAge <= 30) return 'Остър фокус';
+  if (brainAge <= 40) return 'Уравновесен ритъм';
+  if (brainAge <= 52) return 'Спокоен темп';
+  return 'Нуждае се от разгрявка';
 }
 
 export function calculateMedian(values: number[]): number {
   if (values.length === 0) return 0;
   const sorted = [...values].sort((a, b) => a - b);
   const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 !== 0
-    ? sorted[mid]
-    : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  if (sorted.length % 2 === 0) {
+    return Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+  }
+  return Math.round(sorted[mid]);
 }
 
-export function scoreReaction(medianMs: number): number {
-  const { bestMs, worstMs } = SCORING_CONFIG.reaction;
-  const raw = (100 * (worstMs - medianMs)) / (worstMs - bestMs);
-  return Math.round(clamp(raw, 0, 100));
-}
-
-export function scoreMemory(accuracy: number, avgRoundSeconds: number): number {
-  const { targetRoundSec, maxTimePenalty } = SCORING_CONFIG.memory;
-  const extraSec = Math.max(0, avgRoundSeconds - targetRoundSec);
-  const timePenalty = Math.min(maxTimePenalty, extraSec * 4);
-  const raw = 100 * clamp(accuracy, 0, 1) - timePenalty;
-  return Math.round(clamp(raw, 0, 100));
-}
-
-export function scoreNumberHunt(totalSeconds: number): number {
-  const { bestSec, worstSec } = SCORING_CONFIG.numberHunt;
-  const raw = (100 * (worstSec - totalSeconds)) / (worstSec - bestSec);
-  return Math.round(clamp(raw, 0, 100));
-}
-
-export function scoreStroop(accuracy: number, avgAnswerMs: number): number {
-  const { bestAnswerMs, worstAnswerMs } = SCORING_CONFIG.stroop;
-  const speedRatio = clamp(
-    (worstAnswerMs - avgAnswerMs) / (worstAnswerMs - bestAnswerMs),
-    0,
-    1
-  );
-  const raw = 100 * (0.75 * clamp(accuracy, 0, 1) + 0.25 * speedRatio);
-  return Math.round(clamp(raw, 0, 100));
-}
-
-function getRankTitle(brainAge: number): string {
-  if (brainAge <= 21) return 'Светкавичен ум';
-  if (brainAge <= 27) return 'Остър фокус';
-  if (brainAge <= 35) return 'Стабилен ритъм';
-  if (brainAge <= 45) return 'Спокоен стратег';
-  return 'Нужда от кафе';
-}
-
-export function calculateSessionResult(metrics: SessionMetrics): NormalizedScores {
-  const reactionScore = scoreReaction(metrics.reaction.medianMs);
-  const memoryScore = scoreMemory(
-    metrics.memory.accuracy,
-    metrics.memory.avgRoundSeconds
-  );
-  const numberHuntScore = scoreNumberHunt(metrics.numberHunt.totalSeconds);
-  const stroopScore = scoreStroop(
-    metrics.stroop.accuracy,
-    metrics.stroop.avgAnswerMs
-  );
+export function calculateSessionResult(session: SessionMetrics): NormalizedScores {
+  const reactionScore = scoreReaction(session.reaction);
+  const memoryScore = scoreMemory(session.memory);
+  const numberHuntScore = scoreNumberHunt(session.numberHunt);
+  const stroopScore = scoreStroop(session.stroop);
+  const mathBlitzScore = scoreMathBlitz(session.mathBlitz);
 
   const overallScore = Math.round(
-    reactionScore * SCORING_CONFIG.reaction.weight +
-      memoryScore * SCORING_CONFIG.memory.weight +
-      numberHuntScore * SCORING_CONFIG.numberHunt.weight +
-      stroopScore * SCORING_CONFIG.stroop.weight
+    reactionScore * 0.22 +
+      memoryScore * 0.22 +
+      numberHuntScore * 0.18 +
+      stroopScore * 0.19 +
+      mathBlitzScore * 0.19
   );
 
-  const { minAge, maxAge, baseAge, slope } = SCORING_CONFIG.age;
-  const brainAge = Math.round(
-    clamp(baseAge - slope * overallScore, minAge, maxAge)
-  );
+  // Map 0..100 score to an estimated cognitive age between 65 (low) and 18 (high)
+  const rawAge = 65 - (overallScore / 100) * (65 - 18);
+  const brainAge = Math.round(clamp(rawAge, 18, 65));
 
   return {
     reactionScore,
     memoryScore,
     numberHuntScore,
     stroopScore,
+    mathBlitzScore,
     overallScore,
     brainAge,
-    title: getRankTitle(brainAge),
+    title: getBrainAgeTitle(brainAge),
   };
 }
