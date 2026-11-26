@@ -95,6 +95,22 @@ export interface TranslationDictionary {
     helpStroopExampleLabel: string;
     helpStroopExampleHint: string;
     helpMathBlitzBody: string;
+
+    // Levels Mode
+    levelsModeButton: string;
+    levelsHubTitle: string;
+    levelsHubSubtitle: string;
+    levelLabel: string;
+    levelsBackToGames: string;
+    levelsLockedHint: string;
+
+    // Level Result
+    levelCompletedTitle: string;
+    levelFailedTitle: string;
+    levelNextButton: string;
+    levelRetryButton: string;
+    levelBackToListButton: string;
+    levelEarnStarHint: string;
 }
 
 export const SUPPORTED_LOCALES: Array<{ code: AppLocale; label: string }> = [
@@ -170,7 +186,7 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         memoryIntroHint: 'Запомни светещите квадрати и ги повтори в същия рунд.',
         memorizeHighlighted: true,
         memoryPreviewHint:
-            'Квадратите ще светнат за 1.5 секунди, след което ще можеш да ги отбележиш.',
+            'Квадратите ще светнат за {time} секунди, след което ще можеш да ги отбележиш.',
         memoryRepeatCount: 'Възпроизведи {count} отбелязани квадрата.',
         memoryNextRound: 'Преминаване към следващия рунд...',
         startRoundN: 'Започни рунд {round}',
@@ -214,6 +230,19 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
             'Думата е „СИН“, но цветът на буквите е червен — правилният отговор е ЧЕРВЕН.',
         helpMathBlitzBody:
             'Реши кратките задачи с +, - и × възможно най-бързо и точно, като избираш един от предложените отговори.',
+        levelsModeButton: 'Нива по игри',
+        levelsHubTitle: 'Тренировка по нива',
+        levelsHubSubtitle:
+            'Избери мини-игра и отключвай следващите нива със звезди.',
+        levelLabel: 'Ниво {level}',
+        levelsBackToGames: '← Всички игри',
+        levelsLockedHint: 'Спечели поне 1 ★ на предходното ниво',
+        levelCompletedTitle: 'Нивото е преминато!',
+        levelFailedTitle: 'Опитай отново',
+        levelNextButton: 'Следващо ниво',
+        levelRetryButton: 'Повтори нивото',
+        levelBackToListButton: 'Към нивата',
+        levelEarnStarHint: 'Събери поне 1 ★, за да отключиш следващото ниво.',
     },
     en: {
         appTitle: 'Brain Age & Reflex',
@@ -274,7 +303,7 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         memoryIntroHint: 'Memorize the glowing tiles and repeat them in the same round.',
         memorizeHighlighted: true,
         memoryPreviewHint:
-            'Tiles will light up for 1.5 seconds, then you can select them.',
+            'Tiles will light up for {time} seconds, then you can select them.',
         memoryRepeatCount: 'Select {count} highlighted tiles.',
         memoryNextRound: 'Moving to the next round...',
         startRoundN: 'Start Round {round}',
@@ -318,6 +347,19 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
             'The word says "BLUE", but the ink color is red — the correct answer is RED.',
         helpMathBlitzBody:
             'Solve short +, - and × problems as quickly and accurately as possible by selecting the right option.',
+            levelsModeButton: 'Game Levels',
+        levelsHubTitle: 'Levels by Game',
+        levelsHubSubtitle:
+            'Pick a mini-game and unlock higher levels by earning stars.',
+        levelLabel: 'Level {level}',
+        levelsBackToGames: '← All games',
+        levelsLockedHint: 'Earn at least 1 ★ on the previous level',
+        levelCompletedTitle: 'Level Cleared!',
+        levelFailedTitle: 'Try Again',
+        levelNextButton: 'Next Level',
+        levelRetryButton: 'Retry Level',
+        levelBackToListButton: 'Back to Levels',
+        levelEarnStarHint: 'Earn at least 1 ★ to unlock the next level.',
     },
     de: {
         appTitle: 'Brain Age & Reflex',
@@ -376,7 +418,7 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         readyForMemory: 'Bereit für das visuelle Gedächtnis?',
         memoryIntroHint: 'Merke dir die leuchtenden Felder und wiederhole sie in derselben Runde.',
         memoryPreviewHint:
-            'Die Felder leuchten 1,5 Sekunden lang auf, danach kannst du sie antippen.',
+            'Die Felder leuchten {time} Sekunden lang auf, danach kannst du sie antippen.',
         memoryRepeatCount: 'Wähle {count} markierte Felder.',
         memoryNextRound: 'Weiter zur nächsten Runde...',
         startRoundN: 'Runde {round} starten',
@@ -478,7 +520,7 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         readyForMemory: '¿Listo para memoria visual?',
         memoryIntroHint: 'Memoriza los cuadros iluminados y repítelos en la misma ronda.',
         memoryPreviewHint:
-            'Los cuadros se iluminarán durante 1,5 segundos y luego podrás marcarlos.',
+            'Los cuadros se iluminarán durante {time} segundos y luego podrás marcarlos.',
         memoryRepeatCount: 'Selecciona {count} cuadros resaltados.',
         memoryNextRound: 'Pasando a la siguiente ronda...',
         startRoundN: 'Iniciar ronda {round}',
@@ -580,7 +622,7 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         readyForMemory: 'Prêt pour la mémoire visuelle ?',
         memoryIntroHint: 'Mémorise les cases allumées et répète-les dans la même manche.',
         memoryPreviewHint:
-            'Les cases s’allument pendant 1,5 seconde, puis tu pourras les sélectionner.',
+            'Les cases s’allument pendant {time} seconde, puis tu pourras les sélectionner.',
         memoryRepeatCount: 'Sélectionne {count} cases mises en évidence.',
         memoryNextRound: 'Passage à la manche suivante...',
         startRoundN: 'Lancer la manche {round}',
@@ -682,7 +724,7 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         readyForMemory: 'Pronto per la memoria visiva?',
         memoryIntroHint: 'Memorizza le caselle illuminate e ripetile nello stesso turno.',
         memoryPreviewHint:
-            'Le caselle si illumineranno per 1,5 secondi, poi potrai selezionarle.',
+            'Le caselle si illumineranno per {time} secondi, poi potrai selezionarle.',
         memoryRepeatCount: 'Seleziona {count} caselle evidenziate.',
         memoryNextRound: 'Passaggio al turno successivo...',
         startRoundN: 'Inizia turno {round}',
@@ -784,7 +826,7 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         readyForMemory: 'Görsel Hafızaya hazır mısın?',
         memoryIntroHint: 'Parlayan kareleri aklında tut ve aynı turda tekrar et.',
         memoryPreviewHint:
-            'Kareler 1,5 saniye yanar, ardından onları seçebilirsin.',
+            'Kareler {time} saniye yanar, ardından onları seçebilirsin.',
         memoryRepeatCount: 'Vurgulanan {count} kareyi seç.',
         memoryNextRound: 'Sonraki tura geçiliyor...',
         startRoundN: '{round}. Turu Başlat',
@@ -886,7 +928,7 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         readyForMemory: 'Pregătit pentru memorie vizuală?',
         memoryIntroHint: 'Memorează pătratele aprinse și repetă-le în aceeași rundă.',
         memoryPreviewHint:
-            'Pătratele se vor aprinde timp de 1,5 secunde, apoi le poți selecta.',
+            'Pătratele se vor aprinde timp de {time} secunde, apoi le poți selecta.',
         memoryRepeatCount: 'Selectează {count} pătrate evidențiate.',
         memoryNextRound: 'Trecem la runda următoare...',
         startRoundN: 'Începe runda {round}',
