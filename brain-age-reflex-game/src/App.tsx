@@ -694,7 +694,7 @@ export function App() {
                 onComplete={handleLevelComplete}
                 locale={locale}
                 totalRounds={activeLevel.params.rounds}
-              //!LATER  conflictRatio={activeLevel.params.conflictRatio} 
+                conflictRatio={activeLevel.params.conflictRatio} 
               />
             )}
 

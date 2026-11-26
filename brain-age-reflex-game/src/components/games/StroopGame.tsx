@@ -11,6 +11,7 @@ interface StroopGameProps {
   locale?: AppLocale;
   totalRounds?: number;
   onComplete: (metrics: StroopMetrics) => void;
+  conflictRatio?: number;
 }
 
 type ColorKey = 'red' | 'blue' | 'green' | 'amber';
@@ -34,22 +35,25 @@ const COLOR_PALETTE: Array<{ key: ColorKey; hex: string }> = [
 ];
 
 const DEFAULT_ROUNDS = 8;
+const DEFAULT_CONFLICT_RATIO = 0.75;
 
 // Read a timestamp outside React render/effect purity checks
 function captureTimestampMs(): number {
   return performance.now();
 }
 
-// Generate a Stroop trial, favoring incongruent word/ink pairs to test cognitive control
+// Generate a Stroop trial using the requested ratio of word/ink conflicts
 function createStroopTrial(
   options: ColorOption[],
+  conflictRatio: number = DEFAULT_CONFLICT_RATIO,
   previousInkKey?: ColorKey
 ): StroopTrial {
   const availableInks = options.filter((c) => c.key !== previousInkKey);
   const inkColor =
     availableInks[Math.floor(Math.random() * availableInks.length)];
 
-  const shouldConflict = Math.random() < 0.75;
+  const clampedRatio = Math.max(0, Math.min(1, conflictRatio));
+  const shouldConflict = Math.random() < clampedRatio;
   const wordCandidates = shouldConflict
     ? options.filter((c) => c.key !== inkColor.key)
     : [inkColor];
@@ -64,10 +68,14 @@ function createStroopTrial(
 
 export function StroopGame({
   locale = 'bg',
-  totalRounds = DEFAULT_ROUNDS,
+  totalRounds,
   onComplete,
+  conflictRatio,
 }: StroopGameProps) {
   const t = getTranslations(locale);
+
+  const roundsCount = totalRounds ?? DEFAULT_ROUNDS;
+  const activeConflictRatio = conflictRatio ?? DEFAULT_CONFLICT_RATIO;
 
   const colorOptions: ColorOption[] = COLOR_PALETTE.map((item) => {
     const labelMap: Record<ColorKey, string> = {
@@ -86,7 +94,7 @@ export function StroopGame({
   const [started, setStarted] = useState<boolean>(false);
   const [round, setRound] = useState<number>(1);
   const [trial, setTrial] = useState<StroopTrial>(() =>
-    createStroopTrial(colorOptions)
+    createStroopTrial(colorOptions, activeConflictRatio)
   );
   const [lastFeedback, setLastFeedback] = useState<'correct' | 'wrong' | null>(
     null
@@ -117,7 +125,7 @@ export function StroopGame({
     reactionTimesRef.current = [];
     lockedRef.current = false;
 
-    const firstTrial = createStroopTrial(colorOptions);
+    const firstTrial = createStroopTrial(colorOptions, activeConflictRatio);
     setRound(1);
     setTrial(firstTrial);
     setLastFeedback(null);
@@ -146,9 +154,9 @@ export function StroopGame({
     setLastFeedback(isCorrect ? 'correct' : 'wrong');
 
     advanceTimerRef.current = window.setTimeout(() => {
-      if (round >= totalRounds) {
+      if (round >= roundsCount) {
         const accuracy = Number(
-          (correctCountRef.current / totalRounds).toFixed(3)
+          (correctCountRef.current / roundsCount).toFixed(3)
         );
         const totalMs = reactionTimesRef.current.reduce(
           (sum, val) => sum + val,
@@ -165,10 +173,16 @@ export function StroopGame({
         return;
       }
 
-      const nextTrial = createStroopTrial(colorOptions, trial.inkColor.key);
+      const nextTrial = createStroopTrial(
+        colorOptions,
+        activeConflictRatio,
+        trial.inkColor.key
+      );
       setRound((prev) => prev + 1);
       setTrial(nextTrial);
       setLastFeedback(null);
+    //  console.log(activeConflictRatio);
+      
       lockedRef.current = false;
       trialStartRef.current = captureTimestampMs();
     }, 320);
@@ -187,7 +201,7 @@ export function StroopGame({
           4 / 5 · {t.stroopTitle}
         </span>
         <span style={{ fontWeight: 700, color: '#38bdf8' }}>
-          {formatText(t.roundOf, { round, total: totalRounds })}
+          {formatText(t.roundOf, { round, total: roundsCount })}
         </span>
       </div>
 
