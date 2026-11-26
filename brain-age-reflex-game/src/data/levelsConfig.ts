@@ -57,7 +57,7 @@ export const GAME_LEVELS: GameLevelConfig[] = [
     id: 'memory-1',
     gameId: 'memory',
     levelNumber: 1,
-    params: { rounds: 3, previewMs: 1650 },
+    params: { rounds: 3, previewMs: 1700 },
     evaluateStars: (metrics): StarRating => {
       if (metrics.accuracy >= 0.95) return 3;
       if (metrics.accuracy >= 0.75) return 2;
@@ -81,10 +81,22 @@ export const GAME_LEVELS: GameLevelConfig[] = [
     id: 'memory-3',
     gameId: 'memory',
     levelNumber: 3,
-    params: { rounds: 5, previewMs: 1150 },
+    params: { rounds: 5, previewMs: 1100 },
     evaluateStars: (metrics): StarRating => {
       if (metrics.accuracy >= 0.9) return 3;
       if (metrics.accuracy >= 0.7) return 2;
+      if (metrics.accuracy >= 0.5) return 1;
+      return 0;
+    },
+  },
+    {
+    id: 'memory-4',
+    gameId: 'memory',
+    levelNumber: 4,
+    params: { rounds: 6, previewMs: 900 },
+    evaluateStars: (metrics): StarRating => {
+      if (metrics.accuracy >= 0.88) return 3;
+      if (metrics.accuracy >= 0.65) return 2;
       if (metrics.accuracy >= 0.5) return 1;
       return 0;
     },
