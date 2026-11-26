@@ -11,12 +11,14 @@ interface MemoryGameProps {
   locale?: AppLocale;
   totalRounds?: number;
   onComplete: (metrics: MemoryMetrics) => void;
+  previewMs?: number;
 }
 
 type Phase = 'ready-to-start' | 'showing' | 'input' | 'feedback';
 
 const GRID_SIZE = 9; // 3x3 grid
 const TOTAL_ROUNDS_DEFAULT = 3;
+const DEFAULT_PREVIEW_MS = 1500;
 
 // Read current timestamp outside React component purity checks
 function getCurrentTimestampMs(): number {
@@ -35,10 +37,15 @@ function pickRandomIndices(count: number, maxExclusive: number): number[] {
 
 export function MemoryGame({
   locale = 'bg',
-  totalRounds = TOTAL_ROUNDS_DEFAULT,
+  totalRounds,
   onComplete,
+  previewMs
 }: MemoryGameProps) {
   const t = getTranslations(locale);
+
+  const roundsCount = totalRounds ?? TOTAL_ROUNDS_DEFAULT;
+  const previewDurationMs = previewMs ?? DEFAULT_PREVIEW_MS; // e.g. 1500
+  const previewDurationSeconds = previewDurationMs / 1000;
 
   const [round, setRound] = useState(1);
   const [phase, setPhase] = useState<Phase>('ready-to-start');
@@ -67,7 +74,7 @@ export function MemoryGame({
   // Start a specific round from a button click or round transition
   const startRound = (roundNumber: number) => {
     clearTimer();
-    const patternLength = Math.min(3 + roundNumber, 6);
+    const patternLength = Math.min(roundsCount + roundNumber, 6);
     const nextTargets = pickRandomIndices(patternLength, GRID_SIZE);
 
     setRound(roundNumber);
@@ -79,7 +86,7 @@ export function MemoryGame({
     timerRef.current = window.setTimeout(() => {
       inputStartRef.current = getCurrentTimestampMs();
       setPhase('input');
-    }, 1500);
+    }, previewDurationMs);
   };
 
   // Record round metrics and either advance or finish the mini-game
@@ -99,7 +106,7 @@ export function MemoryGame({
     setPhase('feedback');
 
     timerRef.current = window.setTimeout(() => {
-      if (round >= totalRounds) {
+      if (round >= roundsCount) {
         const avgAccuracy =
           updatedScores.reduce((sum, val) => sum + val, 0) / updatedScores.length;
         const avgRoundSeconds = Number(
@@ -189,7 +196,7 @@ export function MemoryGame({
           2 / 5 · {t.memoryTitle}
         </span>
         <span style={{ fontWeight: 700, color: '#38bdf8' }}>
-          {formatText(t.roundOf, { round, total: totalRounds })}
+          {formatText(t.roundOf, { round, total: roundsCount })}
         </span>
       </div>
 
@@ -218,7 +225,7 @@ export function MemoryGame({
             {t.readyForMemory}
           </span>
           <span style={{ color: '#94a3b8', fontSize: '0.9rem', maxWidth: '280px' }}>
-            {t.memoryPreviewHint}
+            {formatText(t.memoryPreviewHint, { time: previewDurationSeconds })}
           </span>
           <button
             type="button"

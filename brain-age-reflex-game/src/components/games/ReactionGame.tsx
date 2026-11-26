@@ -11,11 +11,13 @@ import type { ReactionMetrics } from '../../types/game';
 interface ReactionGameProps {
   locale?: AppLocale;
   onComplete: (metrics: ReactionMetrics) => void;
+  totalRounds?: number;
 }
+
 
 type Phase = 'intro' | 'waiting' | 'ready' | 'too-early' | 'done';
 
-const TOTAL_ROUNDS = 5;
+const DEFAULT_ROUNDS = 5;
 const MIN_DELAY_MS = 1100;
 const MAX_DELAY_MS = 2800;
 
@@ -43,8 +45,11 @@ async function triggerReactionHaptic(
 export function ReactionGame({
   locale = 'bg',
   onComplete,
+  totalRounds
 }: ReactionGameProps) {
   const t = getTranslations(locale);
+  const TOTAL_ROUNDS = totalRounds ?? DEFAULT_ROUNDS;
+
 
   const [phase, setPhase] = useState<Phase>('intro');
   const [round, setRound] = useState<number>(1);

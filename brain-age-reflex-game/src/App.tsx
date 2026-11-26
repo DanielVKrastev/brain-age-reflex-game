@@ -7,8 +7,14 @@ import { NumberHuntGame } from './components/games/NumberHuntGame';
 import { ReactionGame } from './components/games/ReactionGame';
 import { StroopGame } from './components/games/StroopGame';
 import { HelpModal, type HelpContextKey } from './components/HelpModal';
+import { LevelsScreen } from './components/LevelsScreen';
 import { ResultCard } from './components/ResultCard';
 import {
+  evaluateStarsForLevel,
+  getLevelsForGame,
+} from './data/levelsConfig';
+import {
+  formatText,
   getTranslations,
   SUPPORTED_LOCALES,
   type AppLocale,
@@ -23,12 +29,23 @@ import type {
   SessionMetrics,
   StroopMetrics,
 } from './types/game';
+import type {
+  AnyMiniGameMetrics,
+  GameLevelConfig,
+  LevelsProgressMap,
+  MiniGameId,
+  StarRating,
+} from './types/levels';
 import {
   appendSessionHistory,
   clearSessionHistory,
   formatHistoryDate,
   loadSessionHistory,
 } from './utils/historyStorage';
+import {
+  loadLevelsProgress,
+  recordLevelResult,
+} from './utils/levelsStorage';
 import { loadSavedLocale, saveLocale } from './utils/localeStorage';
 import { calculateSessionResult } from './utils/scoring';
 
@@ -40,6 +57,18 @@ interface PartialSessionMetrics {
   mathBlitz?: MathBlitzMetrics;
 }
 
+type AppView =
+  | GameStage
+  | 'levels-hub'
+  | 'level-play'
+  | 'level-result';
+
+interface CompletedLevelSummary {
+  level: GameLevelConfig;
+  earnedStars: StarRating;
+  bestStars: StarRating;
+}
+
 const GAME_STAGES: GameStage[] = [
   'reaction',
   'memory',
@@ -48,8 +77,15 @@ const GAME_STAGES: GameStage[] = [
   'math-blitz',
 ];
 
-function mapStageToHelpContext(stage: GameStage): HelpContextKey {
-  switch (stage) {
+function mapViewToHelpContext(
+  view: AppView,
+  activeLevel: GameLevelConfig | null
+): HelpContextKey {
+  if (view === 'level-play' && activeLevel) {
+    return activeLevel.gameId;
+  }
+
+  switch (view) {
     case 'reaction':
       return 'reaction';
     case 'memory':
@@ -60,15 +96,13 @@ function mapStageToHelpContext(stage: GameStage): HelpContextKey {
       return 'stroop';
     case 'math-blitz':
       return 'math-blitz';
-    case 'welcome':
-    case 'result':
     default:
       return 'home';
   }
 }
 
 export function App() {
-  const [stage, setStage] = useState<GameStage>('welcome');
+  const [view, setView] = useState<AppView>('welcome');
   const [sessionId, setSessionId] = useState<number>(0);
   const [metrics, setMetrics] = useState<PartialSessionMetrics>({});
   const [history, setHistory] = useState<SessionHistoryEntry[]>(() =>
@@ -77,8 +111,22 @@ export function App() {
   const [locale, setLocale] = useState<AppLocale>(() => loadSavedLocale());
   const [helpOpen, setHelpOpen] = useState<boolean>(false);
 
+  // Състояние за режима с нива по игри
+  const [levelsProgress, setLevelsProgress] = useState<LevelsProgressMap>(() =>
+    loadLevelsProgress()
+  );
+  const [selectedLevelsGame, setSelectedLevelsGame] =
+    useState<MiniGameId | null>(null);
+  const [activeLevel, setActiveLevel] = useState<GameLevelConfig | null>(null);
+  const [levelAttemptId, setLevelAttemptId] = useState<number>(0);
+  const [levelSummary, setLevelSummary] =
+    useState<CompletedLevelSummary | null>(null);
+
   const t = useMemo(() => getTranslations(locale), [locale]);
-  const helpContext = useMemo(() => mapStageToHelpContext(stage), [stage]);
+  const helpContext = useMemo(
+    () => mapViewToHelpContext(view, activeLevel),
+    [view, activeLevel]
+  );
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -94,15 +142,20 @@ export function App() {
             return;
           }
 
-          if (stage === 'welcome') {
+          if (view === 'welcome') {
             if (!canGoBack) {
               void CapacitorApp.exitApp();
             }
             return;
           }
 
+          if (view === 'level-play' || view === 'level-result') {
+            setView('levels-hub');
+            return;
+          }
+
           setMetrics({});
-          setStage('welcome');
+          setView('welcome');
         }
       );
     };
@@ -114,38 +167,40 @@ export function App() {
         void listenerHandle.remove();
       }
     };
-  }, [stage, helpOpen]);
+  }, [view, helpOpen]);
 
   const handleLocaleChange = (nextLocale: AppLocale) => {
     setLocale(nextLocale);
     saveLocale(nextLocale);
   };
 
+  // --- Stream: Brain Age Test ---
   const startNewSession = () => {
     setHelpOpen(false);
+    setActiveLevel(null);
     setMetrics({});
     setSessionId((prev) => prev + 1);
-    setStage('reaction');
+    setView('reaction');
   };
 
   const handleReactionComplete = (reaction: ReactionMetrics) => {
     setMetrics((prev) => ({ ...prev, reaction }));
-    setStage('memory');
+    setView('memory');
   };
 
   const handleMemoryComplete = (memory: MemoryMetrics) => {
     setMetrics((prev) => ({ ...prev, memory }));
-    setStage('number-hunt');
+    setView('number-hunt');
   };
 
   const handleNumberHuntComplete = (numberHunt: NumberHuntMetrics) => {
     setMetrics((prev) => ({ ...prev, numberHunt }));
-    setStage('stroop');
+    setView('stroop');
   };
 
   const handleStroopComplete = (stroop: StroopMetrics) => {
     setMetrics((prev) => ({ ...prev, stroop }));
-    setStage('math-blitz');
+    setView('math-blitz');
   };
 
   const handleMathBlitzComplete = (mathBlitz: MathBlitzMetrics) => {
@@ -170,8 +225,53 @@ export function App() {
       setHistory(updatedHistory);
     }
 
-    setStage('result');
+    setView('result');
   };
+
+  // --- Stream: Levels in games ---
+  const openLevelsHub = (gameId: MiniGameId | null = null) => {
+    setHelpOpen(false);
+    setSelectedLevelsGame(gameId);
+    setView('levels-hub');
+  };
+
+  const startLevel = (level: GameLevelConfig) => {
+    setHelpOpen(false);
+    setSelectedLevelsGame(level.gameId);
+    setActiveLevel(level);
+    setLevelSummary(null);
+    setLevelAttemptId((prev) => prev + 1);
+    setView('level-play');
+  };
+
+  const handleLevelComplete = (gameMetrics: AnyMiniGameMetrics) => {
+    if (!activeLevel) return;
+
+    const earnedStars = evaluateStarsForLevel(activeLevel, gameMetrics);
+    const { updatedProgress, bestStars } = recordLevelResult(
+      levelsProgress,
+      activeLevel.id,
+      earnedStars
+    );
+
+    setLevelsProgress(updatedProgress);
+    setLevelSummary({
+      level: activeLevel,
+      earnedStars,
+      bestStars,
+    });
+    setView('level-result');
+  };
+
+  const nextLevelInGame: GameLevelConfig | null = useMemo(() => {
+    if (!levelSummary) return null;
+    const levels = getLevelsForGame(levelSummary.level.gameId);
+    return (
+      levels.find(
+        (item) => item.levelNumber === levelSummary.level.levelNumber + 1
+      ) ?? null
+    );
+  }, [levelSummary]);
 
   const handleClearHistory = () => {
     clearSessionHistory();
@@ -208,8 +308,16 @@ export function App() {
     return Math.min(...history.map((item) => item.brainAge));
   }, [history]);
 
-  const currentGameIndex = GAME_STAGES.indexOf(stage);
+  const currentGameIndex = GAME_STAGES.indexOf(view as GameStage);
   const showProgressBar = currentGameIndex !== -1;
+
+  const gameTitleById: Record<MiniGameId, string> = {
+    reaction: t.reactionTitle,
+    memory: t.memoryTitle,
+    'number-hunt': t.numberHuntTitle,
+    stroop: t.stroopTitle,
+    'math-blitz': t.mathBlitzTitle,
+  };
 
   return (
     <div className="app-shell">
@@ -261,7 +369,7 @@ export function App() {
                 ?
               </button>
 
-              {stage === 'welcome' ? (
+              {view === 'welcome' ? (
                 <select
                   aria-label="Language"
                   value={locale}
@@ -291,7 +399,7 @@ export function App() {
                   type="button"
                   onClick={() => {
                     setHelpOpen(false);
-                    setStage('welcome');
+                    setView('welcome');
                   }}
                   style={{
                     background: 'transparent',
@@ -333,9 +441,27 @@ export function App() {
               ))}
             </div>
           )}
+
+          {view === 'level-play' && activeLevel && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                fontSize: '0.82rem',
+                color: '#38bdf8',
+                fontWeight: 700,
+              }}
+            >
+              <span>{gameTitleById[activeLevel.gameId]}</span>
+              <span>
+                {formatText(t.levelLabel, { level: activeLevel.levelNumber })}
+              </span>
+            </div>
+          )}
         </header>
 
-        {stage === 'welcome' && (
+        {view === 'welcome' && (
           <section
             style={{
               display: 'flex',
@@ -451,10 +577,28 @@ export function App() {
             >
               {t.startTest}
             </button>
+
+            <button
+              type="button"
+              onClick={() => openLevelsHub(null)}
+              style={{
+                background: 'rgba(30, 41, 59, 0.85)',
+                border: '1px solid rgba(56, 189, 248, 0.35)',
+                color: '#e2e8f0',
+                borderRadius: '14px',
+                padding: '13px 16px',
+                fontSize: '0.96rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              {t.levelsModeButton}
+            </button>
           </section>
         )}
 
-        {stage === 'reaction' && (
+        {/* --- Mode: Brain Age Test --- */}
+        {view === 'reaction' && (
           <ReactionGame
             key={`reaction-${sessionId}`}
             onComplete={handleReactionComplete}
@@ -462,7 +606,7 @@ export function App() {
           />
         )}
 
-        {stage === 'memory' && (
+        {view === 'memory' && (
           <MemoryGame
             key={`memory-${sessionId}`}
             onComplete={handleMemoryComplete}
@@ -470,7 +614,7 @@ export function App() {
           />
         )}
 
-        {stage === 'number-hunt' && (
+        {view === 'number-hunt' && (
           <NumberHuntGame
             key={`number-hunt-${sessionId}`}
             onComplete={handleNumberHuntComplete}
@@ -478,7 +622,7 @@ export function App() {
           />
         )}
 
-        {stage === 'stroop' && (
+        {view === 'stroop' && (
           <StroopGame
             key={`stroop-${sessionId}`}
             onComplete={handleStroopComplete}
@@ -486,7 +630,7 @@ export function App() {
           />
         )}
 
-        {stage === 'math-blitz' && (
+        {view === 'math-blitz' && (
           <MathBlitzGame
             key={`math-blitz-${sessionId}`}
             onComplete={handleMathBlitzComplete}
@@ -494,7 +638,7 @@ export function App() {
           />
         )}
 
-        {stage === 'result' && scores && completedSession && (
+        {view === 'result' && scores && completedSession && (
           <ResultCard
             locale={locale}
             scores={scores}
@@ -502,6 +646,186 @@ export function App() {
             history={history}
             onPlayAgain={startNewSession}
           />
+        )}
+
+        {/* --- Mode: Levels games --- */}
+        {view === 'levels-hub' && (
+          <LevelsScreen
+            locale={locale}
+            progress={levelsProgress}
+            initialGameId={selectedLevelsGame}
+            onSelectLevel={startLevel}
+            onBackHome={() => setView('welcome')}
+          />
+        )}
+
+        {view === 'level-play' && activeLevel && (
+          <>
+            {activeLevel.gameId === 'reaction' && (
+              <ReactionGame
+                key={`lvl-${activeLevel.id}-${levelAttemptId}`}
+                onComplete={handleLevelComplete}
+                locale={locale}
+                totalRounds={activeLevel.params.rounds}
+              />
+            )}
+
+            {activeLevel.gameId === 'memory' && (
+              <MemoryGame
+                key={`lvl-${activeLevel.id}-${levelAttemptId}`}
+                onComplete={handleLevelComplete}
+                locale={locale}
+                totalRounds={activeLevel.params.rounds}
+                previewMs={activeLevel.params.previewMs}
+              />
+            )}
+
+            {activeLevel.gameId === 'number-hunt' && (
+              <NumberHuntGame
+                key={`lvl-${activeLevel.id}-${levelAttemptId}`}
+                onComplete={handleLevelComplete}
+                locale={locale}
+              />
+            )}
+
+            {activeLevel.gameId === 'stroop' && (
+              <StroopGame
+                key={`lvl-${activeLevel.id}-${levelAttemptId}`}
+                onComplete={handleLevelComplete}
+                locale={locale}
+                totalRounds={activeLevel.params.rounds}
+              //!LATER  conflictRatio={activeLevel.params.conflictRatio} 
+              />
+            )}
+
+            {activeLevel.gameId === 'math-blitz' && (
+              <MathBlitzGame
+                key={`lvl-${activeLevel.id}-${levelAttemptId}`}
+                onComplete={handleLevelComplete}
+                locale={locale}
+          //!LATER     totalRounds={activeLevel.params.rounds}
+              />
+            )}
+          </>
+        )}
+
+        {view === 'level-result' && levelSummary && (
+          <section
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '14px',
+              flex: 1,
+              justifyContent: 'center',
+            }}
+          >
+            <div
+              className="card"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                textAlign: 'center',
+                gap: '12px',
+                padding: '22px 18px',
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  color: '#38bdf8',
+                }}
+              >
+                {gameTitleById[levelSummary.level.gameId]} •{' '}
+                {formatText(t.levelLabel, {
+                  level: levelSummary.level.levelNumber,
+                })}
+              </span>
+
+              <h2 style={{ margin: 0, fontSize: '1.45rem' }}>
+                {levelSummary.earnedStars >= 1
+                  ? t.levelCompletedTitle
+                  : t.levelFailedTitle}
+              </h2>
+
+              <div
+                style={{
+                  fontSize: '2.2rem',
+                  letterSpacing: '0.14em',
+                  color: '#fbbf24',
+                  fontWeight: 800,
+                }}
+              >
+                {'★'.repeat(levelSummary.earnedStars)}
+                {'☆'.repeat(3 - levelSummary.earnedStars)}
+              </div>
+
+              {levelSummary.earnedStars === 0 && (
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.86rem',
+                    color: '#94a3b8',
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {t.levelEarnStarHint}
+                </p>
+              )}
+            </div>
+
+            {levelSummary.bestStars >= 1 && nextLevelInGame && (
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => startLevel(nextLevelInGame)}
+              >
+                {t.levelNextButton}
+              </button>
+            )}
+
+            <button
+              type="button"
+              className={
+                levelSummary.bestStars >= 1 && nextLevelInGame
+                  ? undefined
+                  : 'btn-primary'
+              }
+              onClick={() => startLevel(levelSummary.level)}
+              style={
+                levelSummary.bestStars >= 1 && nextLevelInGame
+                  ? {
+                      background: 'rgba(30, 41, 59, 0.85)',
+                      border: '1px solid rgba(148, 163, 184, 0.25)',
+                      color: '#e2e8f0',
+                      borderRadius: '14px',
+                      padding: '13px 16px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }
+                  : undefined
+              }
+            >
+              {t.levelRetryButton}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => openLevelsHub(levelSummary.level.gameId)}
+              style={{
+                background: 'transparent',
+                border: '1px solid rgba(148, 163, 184, 0.2)',
+                color: '#cbd5e1',
+                borderRadius: '14px',
+                padding: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {t.levelBackToListButton}
+            </button>
+          </section>
         )}
 
         <HelpModal
