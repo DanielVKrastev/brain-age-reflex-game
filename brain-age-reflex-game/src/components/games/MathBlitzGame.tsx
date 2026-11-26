@@ -11,6 +11,7 @@ import type { MathBlitzMetrics } from '../../types/game';
 interface MathBlitzGameProps {
   locale?: AppLocale;
   onComplete: (metrics: MathBlitzMetrics) => void;
+  totalRounds?: number;
 }
 
 interface MathQuestion {
@@ -21,7 +22,7 @@ interface MathQuestion {
 
 type Phase = 'intro' | 'playing' | 'done';
 
-const TOTAL_ROUNDS = 8;
+const DEFAULT_ROUNDS = 7;
 
 function randomInt(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -83,8 +84,11 @@ async function triggerMathHaptic(
 
 export function MathBlitzGame({
   locale = 'bg',
+  totalRounds,
   onComplete,
 }: MathBlitzGameProps) {
+
+  const roundsCount = totalRounds ?? DEFAULT_ROUNDS;
   const t = getTranslations(locale);
 
   const [phase, setPhase] = useState<Phase>('intro');
@@ -125,7 +129,7 @@ export function MathBlitzGame({
     completedRef.current = true;
 
     const finishTimer = window.setTimeout(() => {
-      const accuracy = correctCount / TOTAL_ROUNDS;
+      const accuracy = correctCount / roundsCount;
       const avgAnswerMs =
         reactionTimesMs.length > 0
           ? Math.round(
@@ -180,7 +184,7 @@ export function MathBlitzGame({
     }
 
     advanceTimerRef.current = window.setTimeout(() => {
-      if (round >= TOTAL_ROUNDS) {
+      if (round >= roundsCount) {
         setPhase('done');
       } else {
         const nextRound = round + 1;
@@ -210,7 +214,7 @@ export function MathBlitzGame({
           {t.mathBlitzTitle}
         </span>
         <span style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-          {formatText(t.roundOf, { round, total: TOTAL_ROUNDS })}
+          {formatText(t.roundOf, { round, total: roundsCount })}
         </span>
       </div>
 
@@ -227,7 +231,7 @@ export function MathBlitzGame({
         >
           <h2 style={{ margin: 0, fontSize: '1.35rem' }}>{t.readyForMath}</h2>
           <p style={{ margin: 0, color: '#94a3b8', lineHeight: 1.5 }}>
-            {formatText(t.mathInstructions, { total: TOTAL_ROUNDS })}
+            {formatText(t.mathInstructions, { total: roundsCount })}
           </p>
           <button type="button" className="btn-primary" onClick={handleStart}>
             {t.startTest}

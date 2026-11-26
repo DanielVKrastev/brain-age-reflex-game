@@ -703,7 +703,7 @@ export function App() {
                 key={`lvl-${activeLevel.id}-${levelAttemptId}`}
                 onComplete={handleLevelComplete}
                 locale={locale}
-          //!LATER     totalRounds={activeLevel.params.rounds}
+                totalRounds={activeLevel.params.rounds}
               />
             )}
           </>
