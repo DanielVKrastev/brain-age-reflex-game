@@ -32,11 +32,13 @@ function getElapsedSeconds(startMs: number): number {
 
 export function NumberHuntGame({
   locale = 'bg',
-  gridSize = DEFAULT_GRID_SIZE,
+  gridSize,
   onComplete,
 }: NumberHuntGameProps) {
   const t = getTranslations(locale);
-  const totalNumbers = gridSize * gridSize;
+
+  const activeGridSize = Math.max(3, Math.min(6, gridSize ?? DEFAULT_GRID_SIZE));
+  const totalNumbers = activeGridSize * activeGridSize;
 
   const [started, setStarted] = useState<boolean>(false);
   const [board, setBoard] = useState<number[]>(() => createShuffledBoard(totalNumbers));
@@ -66,6 +68,18 @@ export function NumberHuntGame({
   useEffect(() => {
     return () => clearTimers();
   }, []);
+
+  // Reset board state when grid dimensions change between levels
+  useEffect(() => {
+    clearTimers();
+    finishedRef.current = false;
+    setStarted(false);
+    setBoard(createShuffledBoard(totalNumbers));
+    setNextNumber(1);
+    setCleared([]);
+    setWrongNum(null);
+    setElapsedSec(0);
+  }, [totalNumbers]);
 
   // Start the hunt from user action
   const handleStartGame = () => {
@@ -185,7 +199,7 @@ export function NumberHuntGame({
           <div
             style={{
               display: 'grid',
-              gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+              gridTemplateColumns: `repeat(${activeGridSize}, 1fr)`,
               gap: '8px',
               flex: 1,
               alignContent: 'center',

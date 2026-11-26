@@ -107,11 +107,11 @@ export const GAME_LEVELS: GameLevelConfig[] = [
     id: 'number-hunt-1',
     gameId: 'number-hunt',
     levelNumber: 1,
-    params: { maxNumber: 16 },
+    params: { gridSize: 3 },
     evaluateStars: (metrics): StarRating => {
-      if (metrics.totalSeconds <= 14) return 3;
-      if (metrics.totalSeconds <= 20) return 2;
-      if (metrics.totalSeconds <= 28) return 1;
+      if (metrics.totalSeconds <= 8) return 3;
+      if (metrics.totalSeconds <= 12) return 2;
+      if (metrics.totalSeconds <= 18) return 1;
       return 0;
     },
   },
@@ -119,11 +119,11 @@ export const GAME_LEVELS: GameLevelConfig[] = [
     id: 'number-hunt-2',
     gameId: 'number-hunt',
     levelNumber: 2,
-    params: { maxNumber: 16 },
+    params: { gridSize: 4 },
     evaluateStars: (metrics): StarRating => {
-      if (metrics.totalSeconds <= 11.5) return 3;
-      if (metrics.totalSeconds <= 16.5) return 2;
-      if (metrics.totalSeconds <= 23) return 1;
+      if (metrics.totalSeconds <= 16) return 3;
+      if (metrics.totalSeconds <= 23) return 2;
+      if (metrics.totalSeconds <= 32) return 1;
       return 0;
     },
   },
@@ -131,11 +131,11 @@ export const GAME_LEVELS: GameLevelConfig[] = [
     id: 'number-hunt-3',
     gameId: 'number-hunt',
     levelNumber: 3,
-    params: { maxNumber: 16 },
+    params: { gridSize: 5 },
     evaluateStars: (metrics): StarRating => {
-      if (metrics.totalSeconds <= 9.5) return 3;
-      if (metrics.totalSeconds <= 13.5) return 2;
-      if (metrics.totalSeconds <= 19) return 1;
+      if (metrics.totalSeconds <= 28) return 3;
+      if (metrics.totalSeconds <= 38) return 2;
+      if (metrics.totalSeconds <= 50) return 1;
       return 0;
     },
   },

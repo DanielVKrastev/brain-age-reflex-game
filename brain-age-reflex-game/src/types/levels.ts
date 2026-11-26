@@ -19,7 +19,7 @@ export interface LevelParams {
   rounds?: number;
   previewMs?: number;
   conflictRatio?: number;
-  maxNumber?: number;
+  gridSize?: number;
 }
 
 interface BaseLevelConfig<TGameId extends MiniGameId, TMetrics> {

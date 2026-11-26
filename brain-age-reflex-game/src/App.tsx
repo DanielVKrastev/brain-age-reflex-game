@@ -685,6 +685,7 @@ export function App() {
                 key={`lvl-${activeLevel.id}-${levelAttemptId}`}
                 onComplete={handleLevelComplete}
                 locale={locale}
+                gridSize={activeLevel.params.gridSize}
               />
             )}
 
