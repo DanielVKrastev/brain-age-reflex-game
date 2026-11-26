@@ -82,6 +82,19 @@ export interface TranslationDictionary {
     colorBlue: string;
     colorGreen: string;
     colorYellow: string;
+
+    // Help Modal
+    helpButtonLabel: string;
+    helpClose: string;
+    helpHomeTitle: string;
+    helpHomeBody: string;
+    helpReactionBody: string;
+    helpMemoryBody: string;
+    helpNumberHuntBody: string;
+    helpStroopBody: string;
+    helpStroopExampleLabel: string;
+    helpStroopExampleHint: string;
+    helpMathBlitzBody: string;
 }
 
 export const SUPPORTED_LOCALES: Array<{ code: AppLocale; label: string }> = [
@@ -183,6 +196,24 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         colorBlue: 'СИН',
         colorGreen: 'ЗЕЛЕН',
         colorYellow: 'ЖЪЛТ',
+        helpButtonLabel: 'Помощ',
+        helpClose: 'Разбрах',
+        helpHomeTitle: 'Как работи тестът?',
+        helpHomeBody:
+            'Тестът включва 5 кратки мини-игри. Всяка измерва скорост и точност, а накрая се изчислява относителната ти мозъчна възраст. Резултатите се пазят локално на устройството.',
+        helpReactionBody:
+            'Изчакай екранът да стане зелен и натисни възможно най-бързо. Ако натиснеш преди зеления сигнал, рундът се повтаря.',
+        helpMemoryBody:
+            'Запомни светещите квадрати за 1.5 секунди, след което ги отбележи в същата позиция. Грешен квадрат прекратява текущия рунд.',
+        helpNumberHuntBody:
+            'Натисни всички числа от 1 до 16 във възходящ ред (1, 2, 3...) възможно най-бързо.',
+        helpStroopBody:
+            'Избери бутона с ЦВЕТА НА БУКВИТЕ, а не значението на написаната дума.',
+        helpStroopExampleLabel: 'Пример:',
+        helpStroopExampleHint:
+            'Думата е „СИН“, но цветът на буквите е червен — правилният отговор е ЧЕРВЕН.',
+        helpMathBlitzBody:
+            'Реши кратките задачи с +, - и × възможно най-бързо и точно, като избираш един от предложените отговори.',
     },
     en: {
         appTitle: 'Brain Age & Reflex',
@@ -269,6 +300,24 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         colorBlue: 'BLUE',
         colorGreen: 'GREEN',
         colorYellow: 'YELLOW',
+        helpButtonLabel: 'Help',
+        helpClose: 'Got it',
+        helpHomeTitle: 'How does the test work?',
+        helpHomeBody:
+            'The test consists of 5 short mini-games measuring speed and accuracy to estimate your relative brain age. All scores are saved locally on your device.',
+        helpReactionBody:
+            'Wait for the screen to turn green and tap as fast as you can. Tapping before green restarts the current round.',
+        helpMemoryBody:
+            'Memorize the glowing tiles for 1.5 seconds, then tap the same positions. Pressing a wrong tile ends the current round.',
+        helpNumberHuntBody:
+            'Tap all numbers from 1 to 16 in ascending order (1, 2, 3...) as fast as possible.',
+        helpStroopBody:
+            'Tap the button matching the INK COLOR of the word, not the word meaning itself.',
+        helpStroopExampleLabel: 'Example:',
+        helpStroopExampleHint:
+            'The word says "BLUE", but the ink color is red — the correct answer is RED.',
+        helpMathBlitzBody:
+            'Solve short +, - and × problems as quickly and accurately as possible by selecting the right option.',
     },
     de: {
         appTitle: 'Brain Age & Reflex',
@@ -353,6 +402,24 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         colorBlue: 'BLAU',
         colorGreen: 'GRÜN',
         colorYellow: 'GELB',
+        helpButtonLabel: 'Hilfe',
+        helpClose: 'Verstanden',
+        helpHomeTitle: 'Wie funktioniert der Test?',
+        helpHomeBody:
+            'Der Test umfasst 5 kurze Mini-Spiele zu Tempo und Genauigkeit, um dein geschätztes Gehirnalter zu berechnen. Alle Ergebnisse bleiben lokal auf deinem Gerät.',
+        helpReactionBody:
+            'Warte, bis der Bildschirm grün wird, und tippe so schnell wie möglich. Zu frühes Tippen wiederholt die aktuelle Runde.',
+        helpMemoryBody:
+            'Merke dir die leuchtenden Felder für 1,5 Sekunden und tippe dann dieselben Positionen an. Ein falsches Feld beendet die Runde.',
+        helpNumberHuntBody:
+            'Tippe alle Zahlen von 1 bis 16 in aufsteigender Reihenfolge (1, 2, 3...) so schnell wie möglich an.',
+        helpStroopBody:
+            'Tippe auf die Schaltfläche mit der SCHRIFTFARBE des Wortes, nicht auf das geschriebene Wort.',
+        helpStroopExampleLabel: 'Beispiel:',
+        helpStroopExampleHint:
+            'Das Wort lautet „BLAU“, aber die Schriftfarbe ist Rot — richtig ist ROT.',
+        helpMathBlitzBody:
+            'Löse kurze +, - und × Aufgaben so schnell und genau wie möglich, indem du die richtige Antwort wählst.',
     },
     es: {
         appTitle: 'Brain Age & Reflex',
@@ -437,6 +504,24 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         colorBlue: 'AZUL',
         colorGreen: 'VERDE',
         colorYellow: 'AMARILLO',
+        helpButtonLabel: 'Ayuda',
+        helpClose: 'Entendido',
+        helpHomeTitle: '¿Cómo funciona el test?',
+        helpHomeBody:
+            'El test incluye 5 minijuegos rápidos de velocidad y precisión para estimar tu edad cerebral. Todos los resultados se guardan localmente en tu dispositivo.',
+        helpReactionBody:
+            'Espera a que la pantalla se ponga verde y toca lo más rápido posible. Si tocas antes de tiempo, se repite la ronda.',
+        helpMemoryBody:
+            'Memoriza los cuadros iluminados durante 1,5 segundos y luego marca las mismas posiciones. Fallar un cuadro termina la ronda.',
+        helpNumberHuntBody:
+            'Toca todos los números del 1 al 16 en orden ascendente (1, 2, 3...) lo más rápido posible.',
+        helpStroopBody:
+            'Toca el botón del COLOR DE TINTA de la palabra, no lo que significa la palabra.',
+        helpStroopExampleLabel: 'Ejemplo:',
+        helpStroopExampleHint:
+            'La palabra dice «AZUL», pero el color de la tinta es rojo — la respuesta correcta es ROJO.',
+        helpMathBlitzBody:
+            'Resuelve cuentas cortas de +, - y × con la mayor rapidez y precisión eligiendo la opción correcta.',
     },
     fr: {
         appTitle: 'Brain Age & Reflex',
@@ -521,6 +606,24 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         colorBlue: 'BLEU',
         colorGreen: 'VERT',
         colorYellow: 'JAUNE',
+        helpButtonLabel: 'Aide',
+        helpClose: 'Compris',
+        helpHomeTitle: 'Comment fonctionne le test ?',
+        helpHomeBody:
+            'Le test réunit 5 mini-jeux rapides de vitesse et de précision pour estimer ton âge cérébral. Tous les scores restent enregistrés localement sur ton appareil.',
+        helpReactionBody:
+            'Attends que l’écran devienne vert et appuie le plus vite possible. Appuyer trop tôt relance la manche en cours.',
+        helpMemoryBody:
+            'Mémorise les cases allumées pendant 1,5 seconde, puis touche les mêmes positions. Une erreur met fin à la manche.',
+        helpNumberHuntBody:
+            'Appuie sur tous les nombres de 1 à 16 dans l’ordre croissant (1, 2, 3...) le plus vite possible.',
+        helpStroopBody:
+            'Appuie sur le bouton de la COULEUR D’ENCRE du mot, pas sur le sens du mot.',
+        helpStroopExampleLabel: 'Exemple :',
+        helpStroopExampleHint:
+            'Le mot indique « BLEU », mais la couleur d’encre est rouge — la bonne réponse est ROUGE.',
+        helpMathBlitzBody:
+            'Résous des calculs courts avec +, - et × aussi vite et juste que possible en choisissant la bonne réponse.',
     },
     it: {
         appTitle: 'Brain Age & Reflex',
@@ -605,6 +708,24 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         colorBlue: 'BLU',
         colorGreen: 'VERDE',
         colorYellow: 'GIALLO',
+        helpButtonLabel: 'Aiuto',
+        helpClose: 'Ho capito',
+        helpHomeTitle: 'Come funziona il test?',
+        helpHomeBody:
+            'Il test comprende 5 brevi minigiochi su rapidità e precisione per stimare la tua età cerebrale. Tutti i risultati restano salvati in locale sul dispositivo.',
+        helpReactionBody:
+            'Attendi che lo schermo diventi verde e tocca più velocemente possibile. Toccare in anticipo ripete il turno.',
+        helpMemoryBody:
+            'Memorizza le caselle illuminate per 1,5 secondi, poi tocca le stesse posizioni. Una scelta errata chiude il turno.',
+        helpNumberHuntBody:
+            'Tocca tutti i numeri da 1 a 16 in ordine crescente (1, 2, 3...) più velocemente possibile.',
+        helpStroopBody:
+            'Tocca il pulsante del COLORE D’INCHIOSTRO della parola, non il significato scritto.',
+        helpStroopExampleLabel: 'Esempio:',
+        helpStroopExampleHint:
+            'La parola dice «BLU», ma il colore dell’inchiostro è rosso — la risposta corretta è ROSSO.',
+        helpMathBlitzBody:
+            'Risolvi brevi operazioni con +, - e × nel modo più rapido e preciso scegliendo la risposta giusta.',
     },
     tr: {
         appTitle: 'Brain Age & Reflex',
@@ -689,6 +810,24 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         colorBlue: 'MAVİ',
         colorGreen: 'YEŞİL',
         colorYellow: 'SARI',
+        helpButtonLabel: 'Yardım',
+        helpClose: 'Anladım',
+        helpHomeTitle: 'Test nasıl çalışır?',
+        helpHomeBody:
+            'Test, tahmini beyin yaşını hesaplamak için hız ve doğruluğu ölçen 5 kısa mini oyundan oluşur. Tüm sonuçlar cihazında yerel olarak saklanır.',
+        helpReactionBody:
+            'Ekranın yeşile dönmesini bekle ve olabildiğince hızlı dokun. Erken dokunmak turu yeniden başlatır.',
+        helpMemoryBody:
+            'Parlayan kareleri 1,5 saniye boyunca aklında tut ve aynı konumlara dokun. Yanlış kare turu bitirir.',
+        helpNumberHuntBody:
+            '1’den 16’ya kadar tüm sayılara artan sırayla (1, 2, 3...) olabildiğince hızlı dokun.',
+        helpStroopBody:
+            'Kelimenin anlamına değil, kelimenin YAZI RENGİNE karşılık gelen düğmeye dokun.',
+        helpStroopExampleLabel: 'Örnek:',
+        helpStroopExampleHint:
+            'Kelime «MAVİ» yazıyor ama yazı rengi kırmızı — doğru cevap KIRMIZI.',
+        helpMathBlitzBody:
+            'Doğru seçeneği işaretleyerek +, - ve × işlemlerini olabildiğince hızlı ve doğru çöz.',
     },
     ro: {
         appTitle: 'Brain Age & Reflex',
@@ -773,6 +912,24 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
         colorBlue: 'ALBASTRU',
         colorGreen: 'VERDE',
         colorYellow: 'GALBEN',
+        helpButtonLabel: 'Ajutor',
+        helpClose: 'Am înțeles',
+        helpHomeTitle: 'Cum funcționează testul?',
+        helpHomeBody:
+            'Testul include 5 mini-jocuri scurte de viteză și precizie pentru a estima vârsta creierului. Toate rezultatele rămân salvate local pe dispozitiv.',
+        helpReactionBody:
+            'Așteaptă să devină ecranul verde și atinge cât mai repede. Dacă atingi prea devreme, runda se reia.',
+        helpMemoryBody:
+            'Memorează pătratele aprinse timp de 1,5 secunde, apoi atinge aceleași poziții. O alegere greșită încheie runda.',
+        helpNumberHuntBody:
+            'Atinge toate numerele de la 1 la 16 în ordine crescătoare (1, 2, 3...) cât mai repede.',
+        helpStroopBody:
+            'Atinge butonul cu CULOAREA CERNELEI cuvântului, nu sensul cuvântului scris.',
+        helpStroopExampleLabel: 'Exemplu:',
+        helpStroopExampleHint:
+            'Cuvântul este «ALBASTRU», dar culoarea cernelii este roșie — răspunsul corect este ROȘU.',
+        helpMathBlitzBody:
+            'Rezolvă calcule scurte cu +, - și × cât mai rapid și corect alegând varianta potrivită.',
     },
 };
 

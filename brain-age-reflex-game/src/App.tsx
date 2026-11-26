@@ -6,6 +6,7 @@ import { MemoryGame } from './components/games/MemoryGame';
 import { NumberHuntGame } from './components/games/NumberHuntGame';
 import { ReactionGame } from './components/games/ReactionGame';
 import { StroopGame } from './components/games/StroopGame';
+import { HelpModal, type HelpContextKey } from './components/HelpModal';
 import { ResultCard } from './components/ResultCard';
 import {
   getTranslations,
@@ -47,6 +48,25 @@ const GAME_STAGES: GameStage[] = [
   'math-blitz',
 ];
 
+function mapStageToHelpContext(stage: GameStage): HelpContextKey {
+  switch (stage) {
+    case 'reaction':
+      return 'reaction';
+    case 'memory':
+      return 'memory';
+    case 'number-hunt':
+      return 'number-hunt';
+    case 'stroop':
+      return 'stroop';
+    case 'math-blitz':
+      return 'math-blitz';
+    case 'welcome':
+    case 'result':
+    default:
+      return 'home';
+  }
+}
+
 export function App() {
   const [stage, setStage] = useState<GameStage>('welcome');
   const [sessionId, setSessionId] = useState<number>(0);
@@ -55,8 +75,10 @@ export function App() {
     loadSessionHistory()
   );
   const [locale, setLocale] = useState<AppLocale>(() => loadSavedLocale());
+  const [helpOpen, setHelpOpen] = useState<boolean>(false);
 
   const t = useMemo(() => getTranslations(locale), [locale]);
+  const helpContext = useMemo(() => mapStageToHelpContext(stage), [stage]);
 
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
@@ -67,6 +89,11 @@ export function App() {
       listenerHandle = await CapacitorApp.addListener(
         'backButton',
         ({ canGoBack }) => {
+          if (helpOpen) {
+            setHelpOpen(false);
+            return;
+          }
+
           if (stage === 'welcome') {
             if (!canGoBack) {
               void CapacitorApp.exitApp();
@@ -87,7 +114,7 @@ export function App() {
         void listenerHandle.remove();
       }
     };
-  }, [stage]);
+  }, [stage, helpOpen]);
 
   const handleLocaleChange = (nextLocale: AppLocale) => {
     setLocale(nextLocale);
@@ -95,6 +122,7 @@ export function App() {
   };
 
   const startNewSession = () => {
+    setHelpOpen(false);
     setMetrics({});
     setSessionId((prev) => prev + 1);
     setStage('reaction');
@@ -212,46 +240,73 @@ export function App() {
               {t.appTitle}
             </span>
 
-            {stage === 'welcome' ? (
-              <select
-                aria-label="Language"
-                value={locale}
-                onChange={(e) => handleLocaleChange(e.target.value as AppLocale)}
-                style={{
-                  backgroundColor: '#172033',
-                  color: '#e2e8f0',
-                  border: '1px solid rgba(148, 163, 184, 0.25)',
-                  borderRadius: '10px',
-                  padding: '6px 10px',
-                  fontSize: '0.8rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  outline: 'none',
-                }}
-              >
-                {SUPPORTED_LOCALES.map((item) => (
-                  <option key={item.code} value={item.code}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
-            ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <button
                 type="button"
-                onClick={() => setStage('welcome')}
+                onClick={() => setHelpOpen(true)}
+                aria-label={t.helpButtonLabel}
+                title={t.helpButtonLabel}
                 style={{
-                  background: 'transparent',
-                  border: '1px solid rgba(148, 163, 184, 0.2)',
-                  color: '#cbd5e1',
+                  width: '32px',
+                  height: '32px',
                   borderRadius: '10px',
-                  padding: '6px 10px',
-                  fontSize: '0.8rem',
+                  border: '1px solid rgba(148, 163, 184, 0.25)',
+                  backgroundColor: '#172033',
+                  color: '#38bdf8',
+                  fontSize: '0.9rem',
+                  fontWeight: 800,
                   cursor: 'pointer',
                 }}
               >
-                {t.homeButton}
+                ?
               </button>
-            )}
+
+              {stage === 'welcome' ? (
+                <select
+                  aria-label="Language"
+                  value={locale}
+                  onChange={(e) =>
+                    handleLocaleChange(e.target.value as AppLocale)
+                  }
+                  style={{
+                    backgroundColor: '#172033',
+                    color: '#e2e8f0',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    borderRadius: '10px',
+                    padding: '6px 10px',
+                    fontSize: '0.8rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    outline: 'none',
+                  }}
+                >
+                  {SUPPORTED_LOCALES.map((item) => (
+                    <option key={item.code} value={item.code}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setHelpOpen(false);
+                    setStage('welcome');
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: '1px solid rgba(148, 163, 184, 0.2)',
+                    color: '#cbd5e1',
+                    borderRadius: '10px',
+                    padding: '6px 10px',
+                    fontSize: '0.8rem',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {t.homeButton}
+                </button>
+              )}
+            </div>
           </div>
 
           {showProgressBar && (
@@ -448,6 +503,13 @@ export function App() {
             onPlayAgain={startNewSession}
           />
         )}
+
+        <HelpModal
+          open={helpOpen}
+          locale={locale}
+          context={helpContext}
+          onClose={() => setHelpOpen(false)}
+        />
       </main>
     </div>
   );
