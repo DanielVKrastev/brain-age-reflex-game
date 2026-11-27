@@ -5,6 +5,7 @@ import {
   resolveShareCardTier,
   type AppLocale,
 } from '../i18n/translations';
+import { downloadPngCard, sharePngCard } from '../utils/shareCardFile';
 
 export interface SessionScoreSummary {
   brainAge: number;
@@ -134,7 +135,11 @@ export function ResultShareCardModal({
 
     ctx.fillStyle = '#94a3b8';
     ctx.font = '700 18px system-ui, -apple-system, sans-serif';
-    ctx.fillText(`${st.shareCardRankLabel} · ${tier.code}`, badgeX + 20, badgeY + 30);
+    ctx.fillText(
+      `${st.shareCardRankLabel} · ${tier.code}`,
+      badgeX + 20,
+      badgeY + 30
+    );
 
     ctx.fillStyle = tier.accentColor;
     ctx.font = '800 28px system-ui, -apple-system, sans-serif';
@@ -192,44 +197,49 @@ export function ResultShareCardModal({
     ctx.font = '500 24px system-ui, -apple-system, sans-serif';
     ctx.fillText(st.shareCardFooter, 96, height - 92);
 
-    setPreviewUrl(canvas.toDataURL('image/png'));
+    const dataUrl = canvas.toDataURL('image/png');
+    const rafId = requestAnimationFrame(() => {
+      setPreviewUrl(dataUrl);
+    });
+
+    return () => cancelAnimationFrame(rafId);
   }, [open, scores, st, tier]);
 
   if (!open) return null;
 
-  const handleDownloadPng = () => {
+  const handleCloseModal = () => {
+    setSharedStatus('');
+    onClose();
+  };
+
+  const fileName = `brain-age-${scores.brainAge}-${tier.code
+    .toLowerCase()
+    .replaceAll(' ', '-')}.png`;
+
+  const handleDownloadPng = async () => {
     if (!previewUrl) return;
-    const link = document.createElement('a');
-    link.href = previewUrl;
-    link.download = `brain-age-${scores.brainAge}-${tier.code.toLowerCase().replaceAll(' ', '-')}.png`;
-    link.click();
-    setSharedStatus(st.shareCardDownloadedStatus);
+    try {
+      const result = await downloadPngCard(previewUrl, fileName);
+      if (result === 'downloaded') {
+        setSharedStatus(st.shareCardDownloadedStatus);
+      }
+    } catch {
+      setSharedStatus('');
+    }
   };
 
   const handleNativeShare = async () => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
+    if (!previewUrl) return;
     try {
-      const blob = await new Promise<Blob | null>((resolve) =>
-        canvas.toBlob((b) => resolve(b), 'image/png')
+      const result = await sharePngCard(
+        previewUrl,
+        fileName,
+        st.shareCardModalTitle
       );
-      if (!blob) return;
-
-      const file = new File(
-        [blob],
-        `brain-age-${scores.brainAge}-${tier.code.toLowerCase().replaceAll(' ', '-')}.png`,
-        { type: 'image/png' }
-      );
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          files: [file],
-          title: st.shareCardModalTitle,
-        });
+      if (result === 'shared') {
         setSharedStatus(st.shareCardSharedStatus);
-      } else {
-        handleDownloadPng();
+      } else if (result === 'downloaded') {
+        setSharedStatus(st.shareCardDownloadedStatus);
       }
     } catch {
       setSharedStatus('');
@@ -277,7 +287,7 @@ export function ResultShareCardModal({
           </h3>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleCloseModal}
             aria-label={st.shareCardCloseButton}
             title={st.shareCardCloseButton}
             style={{
