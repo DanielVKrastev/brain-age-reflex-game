@@ -1038,6 +1038,140 @@ const ISSUE_REPORT_TRANSLATIONS: Record<'bg' | 'en', IssueReportTranslations> = 
   },
 };
 
+export interface ShareCardTierInfo {
+  code: string;
+  label: string;
+  accentColor: string;
+  badgeBg: string;
+}
+
+export interface ShareCardTranslations {
+  shareCardButton: string;
+  shareCardModalTitle: string;
+  shareCardCloseButton: string;
+  shareCardBrand: string;
+  shareCardHeading: string;
+  shareCardAgeSuffix: string;
+  shareCardOverallScore: string;
+  shareCardRankLabel: string;
+  shareCardTierApex: string;
+  shareCardTierPro: string;
+  shareCardTierActive: string;
+  shareCardTierWarmup: string;
+  shareCardReaction: string;
+  shareCardMemory: string;
+  shareCardNumberHunt: string;
+  shareCardStroop: string;
+  shareCardMathBlitz: string;
+  shareCardFooter: string;
+  shareCardShareAction: string;
+  shareCardDownloadAction: string;
+  shareCardSharedStatus: string;
+  shareCardDownloadedStatus: string;
+  shareCardDateLocale: string;
+}
+
+const SHARE_CARD_TRANSLATIONS: Record<'bg' | 'en', ShareCardTranslations> = {
+  bg: {
+    shareCardButton: 'Сподели картичка',
+    shareCardModalTitle: 'Картичка за споделяне',
+    shareCardCloseButton: 'Затвори',
+    shareCardBrand: 'BRAIN AGE LAB',
+    shareCardHeading: 'РЕЗУЛТАТ ОТ ТЕСТА',
+    shareCardAgeSuffix: 'г.',
+    shareCardOverallScore: 'Общ индекс: {score} / 100',
+    shareCardReaction: 'Реакция',
+    shareCardMemory: 'Памет',
+    shareCardNumberHunt: 'Търсене на числа',
+    shareCardStroop: 'Строоп',
+    shareCardMathBlitz: 'Математика',
+    shareCardFooter: 'Споделено от Brain Age приложението',
+    shareCardShareAction: 'Сподели картичка',
+    shareCardDownloadAction: 'Свали PNG',
+    shareCardSharedStatus: 'Споделено ✓',
+    shareCardDownloadedStatus: 'Изтеглено като PNG ✓',
+    shareCardDateLocale: 'bg-BG',
+    shareCardRankLabel: 'РАНГ',
+    shareCardTierApex: 'APEX MIND',
+    shareCardTierPro: 'PRO FOCUS',
+    shareCardTierActive: 'ACTIVE',
+    shareCardTierWarmup: 'WARMUP',
+  },
+  en: {
+    shareCardButton: 'Share card',
+    shareCardModalTitle: 'Shareable Result Card',
+    shareCardCloseButton: 'Close',
+    shareCardBrand: 'BRAIN AGE LAB',
+    shareCardHeading: 'SESSION RESULT',
+    shareCardAgeSuffix: 'yrs',
+    shareCardOverallScore: 'Overall Score: {score} / 100',
+    shareCardReaction: 'Reaction',
+    shareCardMemory: 'Memory',
+    shareCardNumberHunt: 'Number Hunt',
+    shareCardStroop: 'Stroop',
+    shareCardMathBlitz: 'Math Blitz',
+    shareCardFooter: 'Shared from Brain Age app',
+    shareCardShareAction: 'Share card',
+    shareCardDownloadAction: 'Save PNG',
+    shareCardSharedStatus: 'Shared ✓',
+    shareCardDownloadedStatus: 'Downloaded as PNG ✓',
+    shareCardDateLocale: 'en-US',
+    shareCardRankLabel: 'RANK',
+    shareCardTierApex: 'APEX MIND',
+    shareCardTierPro: 'PRO FOCUS',
+    shareCardTierActive: 'ACTIVE',
+    shareCardTierWarmup: 'WARMUP',
+  },
+};
+
+export function resolveShareCardTier(
+  overallScore: number,
+  st: ShareCardTranslations
+): ShareCardTierInfo {
+  if (overallScore >= 85) {
+    return {
+      code: 'TIER S',
+      label: st.shareCardTierApex,
+      accentColor: '#fbbf24',
+      badgeBg: 'rgba(251, 191, 36, 0.16)',
+    };
+  }
+
+  if (overallScore >= 70) {
+    return {
+      code: 'TIER A',
+      label: st.shareCardTierPro,
+      accentColor: '#34d399',
+      badgeBg: 'rgba(52, 211, 153, 0.16)',
+    };
+  }
+
+  if (overallScore >= 50) {
+    return {
+      code: 'TIER B',
+      label: st.shareCardTierActive,
+      accentColor: '#38bdf8',
+      badgeBg: 'rgba(56, 189, 248, 0.16)',
+    };
+  }
+
+  return {
+    code: 'TIER C',
+    label: st.shareCardTierWarmup,
+    accentColor: '#cbd5e1',
+    badgeBg: 'rgba(148, 163, 184, 0.16)',
+  };
+}
+
+export function getShareCardTranslations(
+  locale: AppLocale
+): ShareCardTranslations {
+  if (locale === 'bg') {
+    return SHARE_CARD_TRANSLATIONS.bg;
+  }
+  return SHARE_CARD_TRANSLATIONS.en;
+}
+
 export function getIssueReportTranslations(
   locale: AppLocale
 ): IssueReportTranslations {

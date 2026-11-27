@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   formatText,
+  getShareCardTranslations,
   getTranslations,
   type AppLocale,
   type TranslationDictionary,
@@ -11,6 +12,10 @@ import type {
   SessionMetrics,
 } from '../types/game';
 import { formatHistoryDate } from '../utils/historyStorage';
+import {
+  ResultShareCardModal,
+  type SessionScoreSummary,
+} from './ResultShareCardModal';
 
 interface ResultCardProps {
   locale?: AppLocale;
@@ -44,13 +49,25 @@ export function ResultCard({
   onPlayAgain,
 }: ResultCardProps) {
   const t = getTranslations(locale);
+  const st = getShareCardTranslations(locale);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
+  const [shareCardOpen, setShareCardOpen] = useState<boolean>(false);
 
   // history[0] is the just-saved session; history[1] is the previous session
   const previousSession = history.length > 1 ? history[1] : null;
   const ageDelta = previousSession
     ? scores.brainAge - previousSession.brainAge
     : null;
+
+  const cardScores: SessionScoreSummary = {
+    brainAge: scores.brainAge,
+    overallScore: scores.overallScore,
+    reactionScore: scores.reactionScore,
+    memoryScore: scores.memoryScore,
+    numberHuntScore: scores.numberHuntScore,
+    stroopScore: scores.stroopScore,
+    mathBlitzScore: scores.mathBlitzScore,
+  };
 
   const handleShare = async () => {
     const shareText = buildShareText(t, scores, metrics);
@@ -260,6 +277,13 @@ export function ResultCard({
           marginTop: 'auto',
         }}
       >
+        <button
+          type="button"
+          className="btn-secondary"
+          onClick={() => setShareCardOpen(true)}
+        >
+          {st.shareCardButton}
+        </button>
         <button type="button" className="btn-secondary" onClick={handleShare}>
           {t.shareResult}
         </button>
@@ -267,6 +291,13 @@ export function ResultCard({
           {t.playAgain}
         </button>
       </div>
+
+      <ResultShareCardModal
+        open={shareCardOpen}
+        locale={locale}
+        scores={cardScores}
+        onClose={() => setShareCardOpen(false)}
+      />
     </section>
   );
 }
