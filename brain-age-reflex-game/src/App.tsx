@@ -8,6 +8,7 @@ import { ReactionGame } from './components/games/ReactionGame';
 import { StroopGame } from './components/games/StroopGame';
 import { HelpModal, type HelpContextKey } from './components/HelpModal';
 import { LevelsScreen } from './components/LevelsScreen';
+import { ReportIssueModal } from './components/ReportIssueModal';
 import { ResultCard } from './components/ResultCard';
 import {
   evaluateStarsForLevel,
@@ -15,6 +16,7 @@ import {
 } from './data/levelsConfig';
 import {
   formatText,
+  getIssueReportTranslations,
   getTranslations,
   SUPPORTED_LOCALES,
   type AppLocale,
@@ -48,6 +50,10 @@ import {
 } from './utils/levelsStorage';
 import { loadSavedLocale, saveLocale } from './utils/localeStorage';
 import { calculateSessionResult } from './utils/scoring';
+
+const SUPPORT_EMAIL =
+  (import.meta.env.VITE_SUPPORT_EMAIL as string | undefined)?.trim() ||
+  'support@krastevdev.com';
 
 interface PartialSessionMetrics {
   reaction?: ReactionMetrics;
@@ -110,6 +116,7 @@ export function App() {
   );
   const [locale, setLocale] = useState<AppLocale>(() => loadSavedLocale());
   const [helpOpen, setHelpOpen] = useState<boolean>(false);
+  const [reportOpen, setReportOpen] = useState<boolean>(false);
 
   // Състояние за режима с нива по игри
   const [levelsProgress, setLevelsProgress] = useState<LevelsProgressMap>(() =>
@@ -123,6 +130,7 @@ export function App() {
     useState<CompletedLevelSummary | null>(null);
 
   const t = useMemo(() => getTranslations(locale), [locale]);
+  const rt = useMemo(() => getIssueReportTranslations(locale), [locale]);
   const helpContext = useMemo(
     () => mapViewToHelpContext(view, activeLevel),
     [view, activeLevel]
@@ -131,6 +139,11 @@ export function App() {
   // Handle step-by-step back navigation across game views
   const handleBackNavigation = useCallback(
     (canGoBack = true) => {
+      if (reportOpen) {
+        setReportOpen(false);
+        return;
+      }
+
       if (helpOpen) {
         setHelpOpen(false);
         return;
@@ -161,11 +174,10 @@ export function App() {
       setMetrics({});
       setView('welcome');
     },
-    [view, helpOpen, selectedLevelsGame]
+    [view, helpOpen, reportOpen, selectedLevelsGame]
   );
 
   const backHandlerRef = useRef<(canGoBack?: boolean) => void>(() => { });
-  // eslint-disable-next-line react-hooks/refs
   backHandlerRef.current = handleBackNavigation;
 
   useEffect(() => {
@@ -209,6 +221,7 @@ export function App() {
   // --- Stream: Brain Age Test ---
   const startNewSession = () => {
     setHelpOpen(false);
+    setReportOpen(false);
     setActiveLevel(null);
     setMetrics({});
     setSessionId((prev) => prev + 1);
@@ -263,12 +276,14 @@ export function App() {
   // --- Stream: Levels in games ---
   const openLevelsHub = (gameId: MiniGameId | null = null) => {
     setHelpOpen(false);
+    setReportOpen(false);
     setSelectedLevelsGame(gameId);
     setView('levels-hub');
   };
 
   const startLevel = (level: GameLevelConfig) => {
     setHelpOpen(false);
+    setReportOpen(false);
     setSelectedLevelsGame(level.gameId);
     setActiveLevel(level);
     setLevelSummary(null);
@@ -381,6 +396,26 @@ export function App() {
             </span>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                type="button"
+                onClick={() => setReportOpen(true)}
+                aria-label={rt.reportIssueButton}
+                title={rt.reportIssueButton}
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '10px',
+                  border: '1px solid rgba(148, 163, 184, 0.25)',
+                  backgroundColor: '#172033',
+                  color: '#fbbf24',
+                  fontSize: '0.85rem',
+                  fontWeight: 800,
+                  cursor: 'pointer',
+                }}
+              >
+                !
+              </button>
+
               <button
                 type="button"
                 onClick={() => setHelpOpen(true)}
@@ -862,6 +897,16 @@ export function App() {
             </button>
           </section>
         )}
+
+        <ReportIssueModal
+          open={reportOpen}
+          locale={locale}
+          view={view}
+          selectedGame={selectedLevelsGame}
+          activeLevel={activeLevel}
+          supportEmail={SUPPORT_EMAIL}
+          onClose={() => setReportOpen(false)}
+        />
 
         <HelpModal
           open={helpOpen}

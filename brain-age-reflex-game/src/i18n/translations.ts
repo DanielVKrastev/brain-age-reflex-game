@@ -975,6 +975,88 @@ export const TRANSLATIONS: Record<AppLocale, Partial<TranslationDictionary>> & {
     },
 };
 
+export interface IssueReportTranslations {
+  reportIssueButton: string;
+  reportIssueTitle: string;
+  reportIssueDescriptionPlaceholder: string;
+  reportIssueNoDescription: string;
+  reportIssueCopyButton: string;
+  reportIssueCopiedButton: string;
+  reportIssueEmailButton: string;
+  reportIssueCloseButton: string;
+  reportIssueHeader: string;
+  reportIssueMetaLocale: string;
+  reportIssueMetaPlatform: string;
+  reportIssueMetaView: string;
+  reportIssueMetaContext: string;
+  reportIssueMetaTimestamp: string;
+  reportIssueDescriptionLabel: string;
+  reportIssueLevelFormat: string;
+  reportIssueNone: string;
+}
+
+const ISSUE_REPORT_TRANSLATIONS: Record<'bg' | 'en', IssueReportTranslations> = {
+  bg: {
+    reportIssueButton: 'Сигнал за проблем',
+    reportIssueTitle: 'Сигнал за проблем',
+    reportIssueDescriptionPlaceholder:
+      'Опиши накратко какво се случи и на кой екран беше...',
+    reportIssueNoDescription: '(няма въведено описание)',
+    reportIssueCopyButton: 'Копирай сигнала',
+    reportIssueCopiedButton: 'Копирано ✓',
+    reportIssueEmailButton: 'Изпрати по имейл',
+    reportIssueCloseButton: 'Затвори',
+    reportIssueHeader: '--- Brain Age Сигнал за проблем ---',
+    reportIssueMetaLocale: 'Език',
+    reportIssueMetaPlatform: 'Платформа',
+    reportIssueMetaView: 'Екран',
+    reportIssueMetaContext: 'Игра / Ниво',
+    reportIssueMetaTimestamp: 'Време',
+    reportIssueDescriptionLabel: 'Описание',
+    reportIssueLevelFormat: '{game} (ниво {level})',
+    reportIssueNone: 'няма',
+  },
+  en: {
+    reportIssueButton: 'Report issue',
+    reportIssueTitle: 'Report an Issue',
+    reportIssueDescriptionPlaceholder:
+      'Briefly describe what happened and which screen you were on...',
+    reportIssueNoDescription: '(no description provided)',
+    reportIssueCopyButton: 'Copy report',
+    reportIssueCopiedButton: 'Copied ✓',
+    reportIssueEmailButton: 'Send via email',
+    reportIssueCloseButton: 'Close',
+    reportIssueHeader: '--- Brain Age Bug Report ---',
+    reportIssueMetaLocale: 'Locale',
+    reportIssueMetaPlatform: 'Platform',
+    reportIssueMetaView: 'View',
+    reportIssueMetaContext: 'Game / Level',
+    reportIssueMetaTimestamp: 'Timestamp',
+    reportIssueDescriptionLabel: 'Description',
+    reportIssueLevelFormat: '{game} (level {level})',
+    reportIssueNone: 'none',
+  },
+};
+
+export function getIssueReportTranslations(
+  locale: AppLocale
+): IssueReportTranslations {
+  if (locale === 'bg') {
+    return ISSUE_REPORT_TRANSLATIONS.bg;
+  }
+  return ISSUE_REPORT_TRANSLATIONS.en;
+}
+
+export function formatReportTemplate(
+  template: string,
+  values: Record<string, string | number>
+): string {
+  return Object.entries(values).reduce(
+    (acc, [key, val]) => acc.replaceAll(`{${key}}`, String(val)),
+    template
+  );
+}
+
 export function formatText(
     template: string,
     params: Record<string, string | number>
