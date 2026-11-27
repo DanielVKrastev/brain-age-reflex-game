@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { getLevelsForGame, MINI_GAME_ORDER } from '../data/levelsConfig';
 import {
   formatText,
@@ -17,6 +17,7 @@ interface LevelsScreenProps {
   locale: AppLocale;
   progress: LevelsProgressMap;
   initialGameId?: MiniGameId | null;
+  onSelectGame?: (gameId: MiniGameId | null) => void;
   onSelectLevel: (level: GameLevelConfig) => void;
   onBackHome: () => void;
 }
@@ -31,6 +32,7 @@ export function LevelsScreen({
   locale,
   progress,
   initialGameId = null,
+  onSelectGame,
   onSelectLevel,
   onBackHome,
 }: LevelsScreenProps) {
@@ -38,6 +40,16 @@ export function LevelsScreen({
     initialGameId
   );
   const t = getTranslations(locale);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedGame(initialGameId ?? null);
+  }, [initialGameId]);
+
+  const handleSelectGame = (gameId: MiniGameId | null) => {
+    setSelectedGame(gameId);
+    onSelectGame?.(gameId);
+  };
 
   const gameTitleById: Record<MiniGameId, string> = {
     reaction: t.reactionTitle,
@@ -89,7 +101,7 @@ export function LevelsScreen({
                 key={gameId}
                 type="button"
                 className="card"
-                onClick={() => setSelectedGame(gameId)}
+                onClick={() => handleSelectGame(gameId)}
                 style={{
                   display: 'flex',
                   justifyContent: 'space-between',
@@ -177,7 +189,7 @@ export function LevelsScreen({
       >
         <button
           type="button"
-          onClick={() => setSelectedGame(null)}
+          onClick={() => handleSelectGame(null)}
           style={{
             background: 'rgba(30, 41, 59, 0.8)',
             border: '1px solid rgba(148, 163, 184, 0.25)',

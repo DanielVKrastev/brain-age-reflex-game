@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { MathBlitzGame } from './components/games/MathBlitzGame';
@@ -128,46 +128,78 @@ export function App() {
     [view, activeLevel]
   );
 
+  // Handle step-by-step back navigation across game views
+  const handleBackNavigation = useCallback(
+    (canGoBack = true) => {
+      if (helpOpen) {
+        setHelpOpen(false);
+        return;
+      }
+
+      if (view === 'welcome') {
+        if (!canGoBack && Capacitor.isNativePlatform()) {
+          void CapacitorApp.exitApp();
+        }
+        return;
+      }
+
+      if (view === 'level-play' || view === 'level-result') {
+        setView('levels-hub');
+        return;
+      }
+
+      if (GAME_STAGES.includes(view as GameStage)) {
+        setView('levels-hub');
+        return;
+      }
+
+      if (view === 'levels-hub' && selectedLevelsGame) {
+        setSelectedLevelsGame(null);
+        return;
+      }
+
+      setMetrics({});
+      setView('welcome');
+    },
+    [view, helpOpen, selectedLevelsGame]
+  );
+
+  const backHandlerRef = useRef<(canGoBack?: boolean) => void>(() => { });
+  // eslint-disable-next-line react-hooks/refs
+  backHandlerRef.current = handleBackNavigation;
+
   useEffect(() => {
     if (!Capacitor.isNativePlatform()) return;
 
+    let cancelled = false;
     let listenerHandle: { remove: () => Promise<void> } | undefined;
 
+    // Register hardware back listener once and invoke the latest handler
     const registerBackListener = async () => {
-      listenerHandle = await CapacitorApp.addListener(
+      const handle = await CapacitorApp.addListener(
         'backButton',
         ({ canGoBack }) => {
-          if (helpOpen) {
-            setHelpOpen(false);
-            return;
-          }
-
-          if (view === 'welcome') {
-            if (!canGoBack) {
-              void CapacitorApp.exitApp();
-            }
-            return;
-          }
-
-          if (view === 'level-play' || view === 'level-result') {
-            setView('levels-hub');
-            return;
-          }
-
-          setMetrics({});
-          setView('welcome');
+          backHandlerRef.current(canGoBack);
         }
       );
+
+      if (cancelled) {
+        await handle.remove();
+        return;
+      }
+
+      listenerHandle = handle;
     };
 
     void registerBackListener();
 
     return () => {
+      cancelled = true;
       if (listenerHandle) {
         void listenerHandle.remove();
       }
     };
-  }, [view, helpOpen]);
+  }, []);
 
   const handleLocaleChange = (nextLocale: AppLocale) => {
     setLocale(nextLocale);
@@ -397,10 +429,7 @@ export function App() {
               ) : (
                 <button
                   type="button"
-                  onClick={() => {
-                    setHelpOpen(false);
-                    setView('welcome');
-                  }}
+                  onClick={() => handleBackNavigation(true)}
                   style={{
                     background: 'transparent',
                     border: '1px solid rgba(148, 163, 184, 0.2)',
@@ -654,8 +683,13 @@ export function App() {
             locale={locale}
             progress={levelsProgress}
             initialGameId={selectedLevelsGame}
+            onSelectGame={setSelectedLevelsGame}
             onSelectLevel={startLevel}
-            onBackHome={() => setView('welcome')}
+            onBackHome={() => {
+              setSelectedLevelsGame(null);
+              setMetrics({});
+              setView('welcome');
+            }}
           />
         )}
 
@@ -695,7 +729,7 @@ export function App() {
                 onComplete={handleLevelComplete}
                 locale={locale}
                 totalRounds={activeLevel.params.rounds}
-                conflictRatio={activeLevel.params.conflictRatio} 
+                conflictRatio={activeLevel.params.conflictRatio}
               />
             )}
 
@@ -797,14 +831,14 @@ export function App() {
               style={
                 levelSummary.bestStars >= 1 && nextLevelInGame
                   ? {
-                      background: 'rgba(30, 41, 59, 0.85)',
-                      border: '1px solid rgba(148, 163, 184, 0.25)',
-                      color: '#e2e8f0',
-                      borderRadius: '14px',
-                      padding: '13px 16px',
-                      fontWeight: 700,
-                      cursor: 'pointer',
-                    }
+                    background: 'rgba(30, 41, 59, 0.85)',
+                    border: '1px solid rgba(148, 163, 184, 0.25)',
+                    color: '#e2e8f0',
+                    borderRadius: '14px',
+                    padding: '13px 16px',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }
                   : undefined
               }
             >
